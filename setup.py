@@ -9,7 +9,7 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(
-    name='fabric-dploy',
+    name='dploy',
     version='0.0.1',
     description='Deployment utilities for fabric',
     long_description=(read('README.rst')),
