@@ -2,7 +2,7 @@
 
 import os
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 def read(fname):
@@ -17,7 +17,7 @@ setup(
     author_email='haineault@gmail.com',
     license='MIT',
     url='https://github.com/h3/fabric-contrib-dploy',
-    packages=['fabric.dploy'],
+    packages=find_packages(),
     include_package_data=True,
     zip_safe=True,
     classifiers=[
