@@ -9,7 +9,7 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(
-    name='fabric-contrib-dploy',
+    name='fabric-dploy',
     version='0.0.1',
     description='Deployment utilities for fabric',
     long_description=(read('README.rst')),
@@ -17,7 +17,7 @@ setup(
     author_email='haineault@gmail.com',
     license='MIT',
     url='https://github.com/h3/fabric-contrib-dploy',
-    packages=['fabric.contrib.dploy'],
+    packages=['fabric.dploy'],
     include_package_data=True,
     zip_safe=True,
     classifiers=[
