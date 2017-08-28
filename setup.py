@@ -20,6 +20,9 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     zip_safe=True,
+    install_requires=[
+        'PyYAML>=3.12',
+    ],
     classifiers=[
         'Environment :: Console',
         'Intended Audience :: Developers',
