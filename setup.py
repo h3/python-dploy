@@ -22,6 +22,7 @@ setup(
     zip_safe=True,
     install_requires=[
         'PyYAML>=3.12',
+        'Jinja2>=2.9.5',
     ],
     classifiers=[
         'Environment :: Console',
