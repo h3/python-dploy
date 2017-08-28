@@ -23,6 +23,7 @@ setup(
     install_requires=[
         'PyYAML>=3.12',
         'Jinja2>=2.9.5',
+        'Fabric>=1.14.0',
     ],
     classifiers=[
         'Environment :: Console',
