@@ -1,3 +1,8 @@
+from fabric.api import run, task, env, execute, cd, sudo, get, hide
 
-def testblah():
-    print("TESTBLAH")
+
+class FabricException(Exception):
+    pass
+
+env.abort_exception = FabricException
+env.use_ssh_config = True
