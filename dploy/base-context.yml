@@ -1,0 +1,58 @@
+python:
+    version: 2
+
+django:
+    project_name: '<PROJECT-REQUIRED>'
+    secret_key: '<STAGE-REQUIRED>'
+    static_root: '/var/www/vhosts/{{ nginx["server_name"] }}/static/'
+    media_root: '/var/www/vhosts/{{ nginx["server_name"] }}/media/'
+
+git:
+    repository: '<PROJECT-REQUIRED>'
+    branch: 'master'
+    dirs:
+        root: '/var/www/vhosts/{{ nginx["server_name"] }}'
+
+nginx:
+    server_name: ''
+    document_root: '/var/www/vhosts/{{ nginx["server_name"] }}'
+    config_path: '/etc/nginx/sites-enabled/{{ nginx["server_name"] }}'
+
+virtualenv:
+    name: 'venv'
+    dirs:
+        root: '/var/www/vhosts/{{ nginx["server_name"] }}'
+
+uwsgi:
+    processes: 1
+
+cron:
+    config_path: '/etc/cron.d/' # CRON_PATH
+
+supervisor:
+    config_path: '/etc/supervisor/conf.d/{{ nginx["server_name"] }}.conf' # SUPERVISOR_PATH
+
+logs:
+    path: '/var/log/{{ nginx["server_name"] }}' # LOGS_PATH
+
+email:
+  host: 'smtp.example.com'
+  tls: true
+  port: 587
+  user: 'no-reply@example.com'
+  pass: ''
+
+ssl:
+    cert: false
+    key: false
+    ciphers: |-
+        EECDH+AESGCM:EDH+AESGCM:ECDHE-RSA-AES128-GCM-SHA256:AES256+EECDH:DHE-RSA-AES128-GCM-SHA256:AES256+EDH:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES128-SHA256:DHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES256-GCM-SHA384:AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!MD5:!PSK:!RC4
+
+system:
+    user: 'www-data'
+    group: 'www-data'
+
+rollbacks:
+    enabled: true
+    dirs:
+        root: '/opt/rollbacks/{{ nginx["server_name"] }}/'

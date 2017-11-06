@@ -1,20 +1,22 @@
-from fabric.api import run, task, env, execute, cd, sudo, get, hide
-
 import os
 import pprint
 
 from jinja2 import Template
 
 from fabric.colors import cyan, green
-from fabric.api import run, task, env, execute, cd, sudo, get, hide
+from fabric.api import task, env, execute, cd, sudo, get, hide
 from fabric.contrib import files
 
 from dploy.context import get_context, ctx
-from dploy.utils import pip, parent_dir
+from dploy.utils import parent_dir, git_dirname
+from dploy.commands import pip
 
 
 @task
 def on(stage):
+    """
+    Sets the stage to perform action on
+    """
     env.stage = stage
     env.context = get_context()
     env.hosts = env.context['hosts']
@@ -22,6 +24,9 @@ def on(stage):
 
 @task
 def print_context():
+    """
+    Prints deployment context
+    """
     print('-' * 80)
     print(green('Global context', bold=True))
     print('-' * 80)
@@ -41,6 +46,9 @@ def install_system_dependencies():
 
 @task
 def create_dirs():
+    """
+    Creates necessary directories and apply user/group permissions
+    """
     print(cyan('Creating directories on {}'.format(env.stage)))
     for k in env.context.keys():
         if type(env.context.get(k)) is dict:
@@ -56,11 +64,17 @@ def create_dirs():
 
 @task
 def checkout():
+    """
+    Checkouts the code on the remote location using git
+    """
     branch = ctx('git.branch')
     git_root = ctx('git.dirs.root')
-    if files.exists(os.path.join(git_root, '.git'), use_sudo=True):
+    git_dir = git_dirname(ctx('git.repository'))
+    git_path = os.path.join(git_root, git_dir)
+    if files.exists(os.path.join(git_path, '.git'), use_sudo=True):
         print(cyan('Updating {} on {}'.format(branch, env.stage)))
-        with cd(git_root):
+        print git_path
+        with cd(git_path):
             sudo('git reset --hard')
             sudo('git pull')
             sudo('git submodule update --init --recursive')
@@ -68,15 +82,19 @@ def checkout():
             sudo("find . -iname '*.pyc' | xargs rm -f")
     else:
         print(cyan('Cloning {} on {}'.format(branch, env.stage)))
-        with cd(parent_dir(git_root)):
-            sudo('git clone --recursive -b {} {}'.format(ctx('git.branch'),
-                                                         ctx('git.repository')))
+        with cd(git_root):
+            sudo('git clone --recursive -b {} {} {}'.format(
+                ctx('git.branch'), ctx('git.repository'), git_dir))
 
 
 @task
 def setup_virtualenv():
+    """
+    Setup virtualenv on the remote location
+    """
     venv_root = ctx('virtualenv.dirs.root')
-    lib_root = os.path.join(venv_root, 'lib')
+    venv_name = ctx('virtualenv.name')
+    lib_root = os.path.join(venv_root, venv_name, 'lib')
     if not files.exists(lib_root, use_sudo=True):
         print(cyan("Setuping virtualenv on {}".format(env.stage)))
         with cd(parent_dir(venv_root)):
@@ -298,6 +316,7 @@ def dumpdata(app, dest=None):
         sudo('rm -f {}'.format(tmp_file))
 
 
+"""
 @task
 def deploy(update=False):
     print("Deploying project on {} !".format(env.stage))
@@ -321,4 +340,4 @@ def deploy(update=False):
         execute(setup_nginx)
     execute(check_services)
     manage('deploy_notification')
-
+"""

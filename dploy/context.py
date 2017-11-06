@@ -10,12 +10,9 @@ from fabric.api import env, get
 from fabric.colors import red
 from fabric.contrib import files
 
-CONTEXT_CACHE = {}
+from dploy.utils import load_yaml, git_dirname
 
-BASE_GLOBAL_CONTEXT = """
-dploy:
-    project_name: 'example_project'
-"""
+CONTEXT_CACHE = {}
 
 
 def update(orig_dict, new_dict):
@@ -31,19 +28,14 @@ def update(orig_dict, new_dict):
 
 
 def get_project_context():
-    _f = os.path.join(env.base_path, 'dploy.yml')
-    try:
-        with open(_f, 'r') as fd:
-            try:
-                rs = yaml.load(fd)
-            except yaml.YAMLError as e:
-                print(e)
-    except IOError:
-        print('The file dploy.yml was not found in the current directory.')
-        print('Would you like to bootstrap this project ? [Y|n]')
+    context = load_yaml(os.path.join(env.base_path, 'dploy.yml'))
+    if not context:
+        print('The file "dploy.yml" was not found in the current directory.')
+        # print('Would you like to bootstrap this project ? [Y|n]')
         # TODO
         sys.exit(1)
-    return rs
+    else:
+        return context
 
 
 def get_stage_context(project_name, stage):
@@ -63,7 +55,8 @@ def get_stage_context(project_name, stage):
 
 
 def get_context():
-    base_context = yaml.load(BASE_GLOBAL_CONTEXT)
+    defaults = os.path.join(os.path.dirname(__file__), 'base-context.yml')
+    base_context = load_yaml(defaults)
     project_context = get_project_context()
     base_context = update(base_context, project_context.get('global'))
     # TODO: use get_stage_context
@@ -81,7 +74,7 @@ def ctx(path, context=None):
     if env.host_string:
         context = update(
             context, get_stage_context(
-                context['dploy']['project_name'], env.stage))
+                context['django']['project_name'], env.stage))
     tokens = path.split('.')
     tokens.reverse()
     val = env.context
@@ -97,3 +90,8 @@ def ctx(path, context=None):
         return Template(val).render(**context)
     else:
         return val
+
+
+def get_project_dir():
+    return os.path.join(ctx('nginx.document_root'),
+                        git_dirname(ctx('git.repository')))

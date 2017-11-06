@@ -1,33 +1,23 @@
 import os
+import yaml
 
-from fabric.api import cd, sudo
 
-from dploy.context import ctx
+def load_yaml(path):
+    try:
+        with open(path, 'r') as fd:
+            try:
+                rs = yaml.load(fd)
+            except yaml.YAMLError as e:
+                rs = None
+                print(e)  # TODO: use logging
+    except IOError:
+        rs = None
+    return rs
 
 
 def parent_dir(p):
     return os.path.abspath(os.path.join(p, os.pardir))
 
 
-def venv(i):
-    with cd(ctx('git.dirs.root')):
-        sudo('{}/bin/{}'.format(
-            ctx('virtualenv.dirs.root'), i))
-
-
-def pip(i):
-    if ctx('python.version') == 3:
-        venv('pip3 {}'.format(i))
-    else:
-        venv('pip {}'.format(i))
-
-
-def python(i):
-    if ctx('python.version') == 3:
-        venv('python3 {}'.format(i))
-    else:
-        venv('python2 {}'.format(i))
-
-
-def manage(i):
-    python('manage.py {}'.format(i))
+def git_dirname(uri):
+    return uri.split('/')[-1].replace('.git', '')
