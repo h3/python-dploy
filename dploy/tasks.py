@@ -7,7 +7,7 @@ from fabric.colors import cyan, green
 from fabric.api import task, env, execute, cd, sudo, get, hide
 from fabric.contrib import files
 
-from dploy.context import get_context, ctx
+from dploy.context import get_context, ctx, get_project_dir
 from dploy.utils import parent_dir, git_dirname
 from dploy.commands import pip
 
@@ -73,7 +73,6 @@ def checkout():
     git_path = os.path.join(git_root, git_dir)
     if files.exists(os.path.join(git_path, '.git'), use_sudo=True):
         print(cyan('Updating {} on {}'.format(branch, env.stage)))
-        print git_path
         with cd(git_path):
             sudo('git reset --hard')
             sudo('git pull')
@@ -105,13 +104,13 @@ def setup_virtualenv():
 
 @task
 def install_requirements():
-    git_root = ctx('git.dirs.root')
-    requirements_pip = os.path.join(git_root, 'requirements.pip')
+    project_dir = get_project_dir()
+    requirements_pip = os.path.join(project_dir, 'requirements.pip')
     if files.exists(requirements_pip, use_sudo=True):
         print(cyan("Installing requirements.pip on {}".format(env.stage)))
         pip('install -qr {}'.format(requirements_pip))
 
-    requirements_txt = os.path.join(git_root, 'requirements.txt')
+    requirements_txt = os.path.join(project_dir, 'requirements.txt')
     if files.exists(requirements_txt, use_sudo=True):
         print(cyan("Installing requirements.txt on {}".format(env.stage)))
         pip('install -qr {}'.format(requirements_txt))
