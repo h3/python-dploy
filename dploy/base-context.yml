@@ -24,6 +24,7 @@ virtualenv:
         root: '/var/www/vhosts/{{ nginx["server_name"] }}'
 
 uwsgi:
+    pass: '/dev/shm/{{ nginx["server_name"] }}.sock'
     processes: 1
 
 cron:
