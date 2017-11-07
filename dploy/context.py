@@ -49,7 +49,8 @@ def get_stage_context(project_name, stage):
             get(_path, fd, use_sudo=True)
             CONTEXT_CACHE[_path] = yaml.load(fd.getvalue())
         else:
-            print(red('Warning context file not found: {}'.format(_path)))
+            print(red(
+                'ERROR: context file not found: {}, aborting'.format(_path)))
             CONTEXT_CACHE[_path] = {}
     return CONTEXT_CACHE.get(_path)
 
