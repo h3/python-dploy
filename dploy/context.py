@@ -51,6 +51,7 @@ def get_stage_context(project_name, stage):
         else:
             print(red(
                 'ERROR: context file not found: {}, aborting'.format(_path)))
+            sys.exit(1)
             CONTEXT_CACHE[_path] = {}
     return CONTEXT_CACHE.get(_path)
 
