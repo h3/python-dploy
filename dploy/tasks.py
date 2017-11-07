@@ -106,6 +106,7 @@ def setup_virtualenv():
             sudo('virtualenv --python=python{version} {name}'.format(
                 version=ctx('python.version'),
                 name=ctx('virtualenv.name')))
+            pip('install -U setuptools pip')  # Just avoiding some headaches..
 
 
 @task
