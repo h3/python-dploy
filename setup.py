@@ -12,7 +12,7 @@ setup(
     name='dploy',
     version='0.0.1',
     description='Deployment utilities for fabric',
-    long_description=(read('README.rst')),
+    long_description=(read('README.md')),
     author='Maxime Haineault',
     author_email='haineault@gmail.com',
     license='MIT',
