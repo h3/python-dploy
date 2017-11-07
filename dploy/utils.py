@@ -2,6 +2,10 @@ import os
 import yaml
 
 
+class FabricException(Exception):
+    pass
+
+
 def load_yaml(path):
     try:
         with open(path, 'r') as fd:
@@ -21,3 +25,13 @@ def parent_dir(p):
 
 def git_dirname(uri):
     return uri.split('/')[-1].replace('.git', '')
+
+
+def version_supports_migrations(v):
+    major, minor, revision = map(int, v.split('.'))
+    if major > 1:
+        return True
+    elif major == 1 and minor >= 7:
+        return True
+    else:
+        return False

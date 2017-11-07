@@ -1,15 +1,21 @@
 import os
+import sys
 import pprint
 
 from jinja2 import Template
+from jinja2.exceptions import TemplateNotFound
 
-from fabric.colors import cyan, green
-from fabric.api import task, env, execute, cd, sudo, get, hide
+from fabric.colors import cyan, green, red, yellow
+from fabric.api import task, env, cd, sudo, get, hide, execute  #  noqa
 from fabric.contrib import files
 
 from dploy.context import get_context, ctx, get_project_dir
-from dploy.utils import parent_dir, git_dirname
-from dploy.commands import pip
+from dploy.commands import pip, manage
+from dploy.utils import (
+    FabricException, parent_dir, git_dirname, version_supports_migrations
+)
+
+TEMPLATES_DIR = './dploy/'
 
 
 @task
@@ -129,11 +135,12 @@ def update_requirements():
     pip('install -qUr requirements.pip')
 
 
-# ---
-
-
 @task
 def setup_django_settings():
+    """
+    Takes the dploy/<STAGE>_settings.py template and upload it to remote
+    django project location (as local_settings.py)
+    """
     print(cyan("Setuping django settings project on {}".format(env.stage)))
     project_dir = get_project_dir()
     local_settings = '{stage}_settings.py'.format(stage=env.stage)
@@ -154,49 +161,57 @@ def setup_django_settings():
 
 @task
 def django_migrate():
-    print(cyan("Django migrate on {}".format(env.stage)))
-    try:
-        manage('migrate --noinput')
-    except FabricException as e:
+    """
+    Perform django migration (only if the django version is >= 1.7)
+    """
+    with hide('running', 'stdout'):
+        version = manage('--version')
+    if version_supports_migrations(version):
+        print(cyan("Django migrate on {}".format(env.stage)))
+        try:
+            manage('migrate --noinput')
+        except FabricException as e:
+            print(yellow(
+                'WARNING: faked migrations because of exception {}'.format(e)))
+            manage('migrate --noinput --fake')
+    else:
         print(yellow(
-            'WARNING: had to fake migrations because of exception %s' % e))
-        manage('migrate --noinput --fake')
-        manage('collectstatic --no-input --link -v 0')
+            "Django {} does not support migration, skipping.".format(version)))
 
 
 @task
 def django_collectstatic():
+    """
+    Collect static medias
+    """
     print(cyan("Django collectstatic on {}".format(env.stage)))
-    manage('collectstatic --no-input --link -v 0')
-
-
-@task
-def django(cmd):
-    print(cyan("Django manage {} on {}".format(cmd, env.stage)))
-    manage(cmd)
+    manage('collectstatic --noinput --link -v 0')
 
 
 @task
 def setup_cron():
-    print(cyan('Configuring cron %s' % env.stage))
     # Cron doesn't like dots in filename
     filename = ctx('nginx.server_name').replace('.', '_')
     dest = os.path.join(ctx('cron.config_path'), filename)
-    files.upload_template('cron.template', dest,
-                          context={'ctx': ctx}, use_jinja=True,
-                          template_dir=TEMPLATES_DIR, use_sudo=True,
-                          backup=False, mode=None)
+    try:
+        files.upload_template('cron.template', dest,
+                            context={'ctx': ctx}, use_jinja=True,
+                            template_dir=TEMPLATES_DIR, use_sudo=True,
+                            backup=False, mode=None)
 
-    # We make sure the cron file always ends with a blank line, otherwise
-    # it will be ignored by cron. Yeah, that's retarded.
-    sudo("echo -en '\n' >> {}".format(dest))
-    sudo('chown -R root:root {}'.format(dest))
-    sudo('chmod 644 {}'.format(dest))
+        print(cyan('Configuring cron {}'.format(env.stage)))
+        # We make sure the cron file always ends with a blank line, otherwise
+        # it will be ignored by cron. Yeah, that's retarded.
+        sudo("echo -en '\n' >> {}".format(dest))
+        sudo('chown -R root:root {}'.format(dest))
+        sudo('chmod 644 {}'.format(dest))
+    except TemplateNotFound:
+        print(yellow('Skipping cron configuration on {}'.format(env.stage)))
 
 
 @task
 def setup_uwsgi():
-    print(cyan('Configuring uwsgi %s' % env.stage))
+    print(cyan('Configuring uwsgi {}'.format(env.stage)))
     project_dir = get_project_dir()
     wsgi_file = os.path.join(project_dir, ctx('django.project_name'), 'wsgi.py')
     uwsgi_ini = os.path.join(project_dir, 'uwsgi.ini')
@@ -211,9 +226,18 @@ def setup_uwsgi():
                           backup=False, mode=None)
 
 
+# ---
+
+
+@task
+def django(cmd):
+    print(cyan("Django manage {} on {}".format(cmd, env.stage)))
+    manage(cmd)
+
+
 @task
 def setup_nginx():
-    print(cyan('Configuring nginx %s' % env.stage))
+    print(cyan('Configuring nginx on {}'.format(env.stage)))
 
     ssl = False
     context = {
@@ -234,12 +258,12 @@ def setup_nginx():
             context['ssl_with_dhparam'] = True
     if ssl:
         files.upload_template('nginx_ssl.template', ctx('nginx.config_path'),
-            context=context, use_jinja=True, template_dir='dploy/', use_sudo=True,
-            backup=False, mode=None)
+            context=context, use_jinja=True, template_dir='dploy/',
+            use_sudo=True, backup=False, mode=None)
     else:
         files.upload_template('nginx.template', ctx('nginx.config_path'),
-            context=context, use_jinja=True, template_dir='dploy/', use_sudo=True,
-            backup=False, mode=None)
+            context=context, use_jinja=True, template_dir='dploy/',
+            use_sudo=True, backup=False, mode=None)
 
     if files.exists(ctx('nginx.document_root'), use_sudo=True):
         sudo('chown -R {user}:{group} {path}'.format(
@@ -251,7 +275,7 @@ def setup_nginx():
 
 @task
 def setup_supervisor():
-    print(cyan('Configuring supervisor %s' % env.stage))
+    print(cyan('Configuring supervisor {}'.format(env.stage)))
     project_dir = get_project_dir()
     uwsgi_ini = os.path.join(project_dir, 'uwsgi.ini')
     context = {'project_dir': project_dir, 'uwsgi_ini': uwsgi_ini, 'ctx': ctx}
@@ -262,7 +286,7 @@ def setup_supervisor():
 
 @task
 def check_services():
-    print(cyan('Checking services on %s' % env.stage))
+    print(cyan('Checking services on {}'.format(env.stage)))
     time.sleep(3)  # give uwsgi time to come back
     checks = {
         'uwsgi': "ps aux | grep uwsgi | grep '{}' | grep '^www-data' | grep -v grep".format(ctx('nginx.server_name')),
@@ -293,13 +317,13 @@ def rollback_list():
 
 @task
 def rollback_create():
-    print(cyan('Creating rollback on %s' % env.stage))
+    print(cyan('Creating rollback on {}'.format(env.stage)))
     manage('rollback --create')
 
 
 @task
 def rollback_restore(uid=None):
-    print(cyan('Restoring rollback on %s' % env.stage))
+    print(cyan('Restoring rollback on {}'.format(env.stage)))
     manage('rollback --restore {}'.format(uid))
 
 
