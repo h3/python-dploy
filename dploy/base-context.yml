@@ -34,7 +34,8 @@ supervisor:
     config_path: '/etc/supervisor/conf.d/{{ nginx["server_name"] }}.conf' # SUPERVISOR_PATH
 
 logs:
-    path: '/var/log/{{ nginx["server_name"] }}' # LOGS_PATH
+    dirs:
+        root: '/var/log/{{ nginx["server_name"] }}' # LOGS_PATH
 
 email:
   host: 'smtp.example.com'

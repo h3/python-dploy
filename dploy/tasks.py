@@ -66,9 +66,6 @@ def create_dirs():
     """
     print(cyan('Creating directories on {}'.format(env.stage)))
     for k in env.context.keys():
-        if k == 'logs':
-            import IPython
-            IPython.embed
         if type(env.context.get(k)) is dict:
             dirs = env.context.get(k).get('dirs')
             if dirs:
@@ -229,7 +226,7 @@ def setup_uwsgi():
     wsgi_file = os.path.join(project_dir, ctx('django.project_name'), 'wsgi.py')
     uwsgi_ini = os.path.join(project_dir, 'uwsgi.ini')
     context = {'ctx': ctx, 'project_dir': project_dir, 'wsgi_file': wsgi_file}
-    log_file = '{}/uwsgi.log'.format(ctx('logs.path'))
+    log_file = '{}/uwsgi.log'.format(ctx('logs.dirs.root'))
     sudo('touch {logfile}'.format(logfile=log_file))
     sudo('chown {user}:{group} {logfile}'.format(
         logfile=log_file, user=ctx('system.user'), group=ctx('system.group')))
