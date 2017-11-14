@@ -31,7 +31,8 @@ cron:
     config_path: '/etc/cron.d/' # CRON_PATH
 
 supervisor:
-    config_path: '/etc/supervisor/conf.d/{{ nginx["server_name"] }}.conf' # SUPERVISOR_PATH
+    dirs:
+        root: '/etc/supervisor/conf.d'
 
 logs:
     dirs:

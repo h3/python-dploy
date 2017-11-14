@@ -289,10 +289,14 @@ def setup_supervisor():
     project_dir = get_project_dir()
     uwsgi_ini = os.path.join(project_dir, 'uwsgi.ini')
     context = {'project_dir': project_dir, 'uwsgi_ini': uwsgi_ini, 'ctx': ctx}
-    files.upload_template('supervisor.template', ctx('supervisor.config_path'),
+    dest = os.path.join(
+        ctx('supervisor.dirs.root'),
+        '{}.conf'.format(ctx('nginx.server_name').replace('.', '_')))
+    files.upload_template('supervisor.template', dest,
         context=context, use_jinja=True, template_dir='dploy/', use_sudo=True,
         backup=False, mode=None)
     sudo('supervisorctl reload')
+
 
 @task
 def check_services():
