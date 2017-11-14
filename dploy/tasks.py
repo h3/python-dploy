@@ -6,13 +6,13 @@ from jinja2 import Template
 from jinja2.exceptions import TemplateNotFound
 
 from fabric.colors import cyan, green, red, yellow
-from fabric.api import task, env, cd, sudo, get, hide, execute  #  noqa
+from fabric.api import task, env, cd, sudo, local, get, hide, execute  # noqa
 from fabric.contrib import files
 
 from dploy.context import get_context, ctx, get_project_dir
 from dploy.commands import pip, manage
 from dploy.utils import (
-    FabricException, parent_dir, git_dirname, version_supports_migrations
+    FabricException, git_dirname, version_supports_migrations
 )
 
 TEMPLATES_DIR = './dploy/'
@@ -23,9 +23,14 @@ def on(stage):
     """
     Sets the stage to perform action on
     """
+    localhosts = ['localhost', '127.0.0.1']
     env.stage = stage
     env.context = get_context()
-    env.hosts = env.context['hosts']
+    hosts = env.context['hosts']
+    if stage == 'dev' and len(hosts) == 1 and hosts[0] in localhosts:
+        env.hosts = []
+    else:
+        env.hosts = env.context['hosts']
 
 
 @task
@@ -46,8 +51,12 @@ def print_context():
 def install_system_dependencies():
     deps = ctx('system.packages')
     if deps:
+        _cmd = 'apt-get install -qy {}'.format(deps.replace('\\\n', ''))
         print(cyan('Installing system dependencies on {}'.format(env.stage)))
-        sudo('apt-get install -qy {}'.format(deps.replace('\\\n', '')))
+        if len(env.hosts) == 0 and env.stage == 'dev':
+            local(_cmd)
+        else:
+            sudo(_cmd)
 
 
 @task
@@ -57,6 +66,9 @@ def create_dirs():
     """
     print(cyan('Creating directories on {}'.format(env.stage)))
     for k in env.context.keys():
+        if k == 'logs':
+            import IPython
+            IPython.embed
         if type(env.context.get(k)) is dict:
             dirs = env.context.get(k).get('dirs')
             if dirs:
@@ -102,11 +114,11 @@ def setup_virtualenv():
     lib_root = os.path.join(venv_root, venv_name, 'lib')
     if not files.exists(lib_root, use_sudo=True):
         print(cyan("Setuping virtualenv on {}".format(env.stage)))
-        with cd(parent_dir(venv_root)):
+        with cd(venv_root):
             sudo('virtualenv --python=python{version} {name}'.format(
                 version=ctx('python.version'),
                 name=ctx('virtualenv.name')))
-            pip('install -U setuptools pip')  # Just avoiding some headaches..
+    pip('install -U setuptools pip')  # Just avoiding some headaches..
 
 
 @task
