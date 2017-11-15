@@ -195,7 +195,7 @@ def django_collectstatic():
     Collect static medias
     """
     print(cyan("Django collectstatic on {}".format(env.stage)))
-    manage('collectstatic --noinput --link -v 0')
+    manage(ctx('django.commands.collectstatic'))
 
 
 @task

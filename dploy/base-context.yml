@@ -4,8 +4,11 @@ python:
 django:
     project_name: '<PROJECT-REQUIRED>'
     secret_key: '<STAGE-REQUIRED>'
-    static_root: '/var/www/vhosts/{{ nginx["server_name"] }}/static/'
-    media_root: '/var/www/vhosts/{{ nginx["server_name"] }}/media/'
+    commands:
+        collectstatic: 'collectstatic --noinput --link -v 0'
+    dirs:
+        media_root: '/var/www/vhosts/{{ nginx["server_name"] }}/media'
+        static_root: '/var/www/vhosts/{{ nginx["server_name"] }}/static'
 
 git:
     repository: '<PROJECT-REQUIRED>'
