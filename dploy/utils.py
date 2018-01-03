@@ -6,6 +6,13 @@ class FabricException(Exception):
     pass
 
 
+def select_template(templates):
+    for tpl in templates:
+        if os.path.exists(tpl):
+            return tpl
+    return None
+
+
 def load_yaml(path):
     try:
         with open(path, 'r') as fd:

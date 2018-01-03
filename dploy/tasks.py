@@ -1,18 +1,19 @@
 import os
 import sys
 import pprint
+import time
 
 from jinja2 import Template
 from jinja2.exceptions import TemplateNotFound
 
 from fabric.colors import cyan, green, red, yellow
-from fabric.api import task, env, cd, sudo, local, get, hide, execute  # noqa
+from fabric.api import task, env, cd, sudo, local, get, hide, run, execute  # noqa
 from fabric.contrib import files
 
 from dploy.context import get_context, ctx, get_project_dir
 from dploy.commands import pip, manage
 from dploy.utils import (
-    FabricException, git_dirname, version_supports_migrations
+    FabricException, git_dirname, version_supports_migrations, select_template,
 )
 
 TEMPLATES_DIR = './dploy/'
@@ -153,20 +154,33 @@ def setup_django_settings():
     """
     print(cyan("Setuping django settings project on {}".format(env.stage)))
     project_dir = get_project_dir()
-    local_settings = '{stage}_settings.py'.format(stage=env.stage)
+    project_name = ctx('django.project_name')
+    stage_settings = '{stage}_settings.py'.format(stage=env.stage)
+    templates = [
+        os.path.join(TEMPLATES_DIR, stage_settings),
+        os.path.join('./', project_name, 'local_settings.py-dist'),
+        os.path.join('./', project_name, 'local_settings.py-default'),
+        os.path.join('./', project_name, 'local_settings.py-example'),
+        os.path.join('./', project_name, 'local_settings.py.dist'),
+        os.path.join('./', project_name, 'local_settings.py.default'),
+        os.path.join('./', project_name, 'local_settings.py.example'),
+    ]
 
-    if os.path.exists(os.path.join(TEMPLATES_DIR, local_settings)):
-        _settings_dest = os.path.join(project_dir, ctx('django.project_name'),
-                                      'local_settings.py')
-        files.upload_template(local_settings, _settings_dest,
-                              context={'ctx': ctx, 'project_dir': project_dir},
-                              use_jinja=True, template_dir=TEMPLATES_DIR,
-                              use_sudo=True, backup=False, mode=None)
-    else:
-        print(
-            red('ERROR: deploying to {}, but {}/{} does not exists.'.format(
-                env.stage, TEMPLATES_DIR, local_settings)))
+    template = select_template(templates)
+    if not template:
+        print(red('ERROR: the project does not have a settings template'))
+        print("The project must provide at least one of these file:")
+        print("\n - {}\n".format("\n - ".join(templates)))
         sys.exit(1)
+
+    filename = os.path.basename(template)
+    templates_dir = os.path.dirname(template)
+    _settings_dest = os.path.join(project_dir, project_name,
+                                  'local_settings.py')
+    files.upload_template(filename, _settings_dest,
+                          context={'ctx': ctx, 'project_dir': project_dir},
+                          use_jinja=True, template_dir=templates_dir,
+                          use_sudo=True, backup=False, mode=None)
 
 
 @task
@@ -205,9 +219,9 @@ def setup_cron():
     dest = os.path.join(ctx('cron.config_path'), filename)
     try:
         files.upload_template('cron.template', dest,
-                            context={'ctx': ctx}, use_jinja=True,
-                            template_dir=TEMPLATES_DIR, use_sudo=True,
-                            backup=False, mode=None)
+                              context={'ctx': ctx}, use_jinja=True,
+                              template_dir=TEMPLATES_DIR, use_sudo=True,
+                              backup=False, mode=None)
 
         print(cyan('Configuring cron {}'.format(env.stage)))
         # We make sure the cron file always ends with a blank line, otherwise
@@ -267,11 +281,13 @@ def setup_nginx():
         if files.exists(ctx('ssl.dhparam'), use_sudo=True):
             context['ssl_with_dhparam'] = True
     if ssl:
-        files.upload_template('nginx_ssl.template', ctx('nginx.config_path'),
+        files.upload_template(
+            'nginx_ssl.template', ctx('nginx.config_path'),
             context=context, use_jinja=True, template_dir='dploy/',
             use_sudo=True, backup=False, mode=None)
     else:
-        files.upload_template('nginx.template', ctx('nginx.config_path'),
+        files.upload_template(
+            'nginx.template', ctx('nginx.config_path'),
             context=context, use_jinja=True, template_dir='dploy/',
             use_sudo=True, backup=False, mode=None)
 
@@ -292,7 +308,8 @@ def setup_supervisor():
     dest = os.path.join(
         ctx('supervisor.dirs.root'),
         '{}.conf'.format(ctx('nginx.server_name').replace('.', '_')))
-    files.upload_template('supervisor.template', dest,
+    files.upload_template(
+        'supervisor.template', dest,
         context=context, use_jinja=True, template_dir='dploy/', use_sudo=True,
         backup=False, mode=None)
     sudo('supervisorctl reload')
@@ -303,9 +320,9 @@ def check_services():
     print(cyan('Checking services on {}'.format(env.stage)))
     time.sleep(3)  # give uwsgi time to come back
     checks = {
-        'uwsgi': "ps aux | grep uwsgi | grep '{}' | grep '^www-data' | grep -v grep".format(ctx('nginx.server_name')),
+        'uwsgi': "ps aux | grep uwsgi | grep '{}' | grep '^www-data' | grep -v grep".format(ctx('nginx.server_name')),  # noqa
         'nginx': "ps aux | grep nginx | grep '^www-data' | grep -v grep",
-        'supervisor': "ps aux | grep supervisord.conf | grep '^root' | grep -v grep",
+        'supervisor': "ps aux | grep supervisord.conf | grep '^root' | grep -v grep",  # noqa
     }
     for check, cmd in checks.iteritems():
         try:
