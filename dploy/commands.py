@@ -13,10 +13,7 @@ def venv(i):
 
 
 def pip(i):
-    if ctx('python.version') == 3:
-        venv('pip3 {}'.format(i))
-    else:
-        venv('pip {}'.format(i))
+    venv('pip {}'.format(i))
 
 
 def python(i):
