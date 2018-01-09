@@ -20,7 +20,7 @@ CONTEXT_CACHE = {}
 
 
 def update(orig_dict, new_dict):
-    for key, val in new_dict.iteritems():
+    for key, val in new_dict.items():
         if isinstance(val, collections.Mapping):
             tmp = update(orig_dict.get(key, {}), val)
             orig_dict[key] = tmp
