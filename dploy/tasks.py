@@ -70,7 +70,7 @@ def create_dirs():
         if type(env.context.get(k)) is dict:
             dirs = env.context.get(k).get('dirs')
             if dirs:
-                for name, path in dirs.iteritems():
+                for name, path in dirs.items():
                     p = Template(path).render(**env.context)
                     sudo('mkdir -p {}'.format(p))
                     sudo('chown -R {user}:{group} {path}'.format(
@@ -324,7 +324,7 @@ def check_services():
         'nginx': "ps aux | grep nginx | grep '^www-data' | grep -v grep",
         'supervisor': "ps aux | grep supervisord.conf | grep '^root' | grep -v grep",  # noqa
     }
-    for check, cmd in checks.iteritems():
+    for check, cmd in checks.items():
         try:
             label = ('%s...' % check).ljust(20)
             with hide('output', 'running'):
