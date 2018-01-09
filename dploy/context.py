@@ -3,7 +3,6 @@ import sys
 import yaml
 import collections
 
-from StringIO import StringIO
 from jinja2 import Template
 
 from fabric.api import env, get
@@ -11,6 +10,11 @@ from fabric.colors import red
 from fabric.contrib import files
 
 from dploy.utils import load_yaml, git_dirname
+
+try:
+    from StringIO import StringIO  #py3
+except ImportError:
+    from io import StringIO  # py2
 
 CONTEXT_CACHE = {}
 
