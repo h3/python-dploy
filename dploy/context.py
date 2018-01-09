@@ -3,6 +3,7 @@ import sys
 import yaml
 import collections
 
+from io import BytesIO
 from jinja2 import Template
 
 from fabric.api import env, get
@@ -10,11 +11,6 @@ from fabric.colors import red
 from fabric.contrib import files
 
 from dploy.utils import load_yaml, git_dirname
-
-try:
-    from StringIO import StringIO  #py3
-except ImportError:
-    from io import StringIO  # py2
 
 CONTEXT_CACHE = {}
 
@@ -49,7 +45,7 @@ def get_stage_context(project_name, stage):
     })
     if not CONTEXT_CACHE.get(_path):
         if files.exists(_path, use_sudo=True):
-            fd = StringIO()
+            fd = BytesIO()
             get(_path, fd, use_sudo=True)
             CONTEXT_CACHE[_path] = yaml.load(fd.getvalue())
         else:
