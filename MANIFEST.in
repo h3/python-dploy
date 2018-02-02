@@ -1,1 +1,2 @@
 include dploy/*.yml
+include templates/*.tpl

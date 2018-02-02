@@ -1,0 +1,63 @@
+map $uri $redirect_https {
+    /.well-known/acme-challenge 0;
+    default 1;
+}
+
+server {
+    listen {{ ctx("nginx.server_ip") }}:80;
+    server_name {{ ctx("nginx.server_name") }};
+    location /.well-known/acme-challenge {
+      root /var/www/html;
+    }
+    if ($redirect_https = 1) {
+      rewrite ^ https://$server_name$request_uri permanent;
+    }
+}
+
+server {
+    server_name {{ ctx("nginx.server_name") }};
+    listen {{ ctx("nginx.server_ip") }}:443;
+    client_max_body_size 20M;
+    keepalive_timeout 70;
+
+    # https://stackoverflow.com/questions/34768527/uwsgi-ioerror-write-error
+    uwsgi_ignore_client_abort on;
+
+    ssl on;
+    ssl_certificate /etc/letsencrypt/live/{{ ctx("nginx.server_name") }}/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/{{ ctx("nginx.server_name") }}/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+    access_log {{ ctx("logs.dirs.root") }}/nginx-access;
+    error_log {{ ctx("logs.dirs.root") }}/nginx-error;
+
+    # Deny illegal Host headers
+    if ($host !~* ^{{ ctx("nginx.server_name") }}$) {
+        return 400;
+    }
+
+    location /static {
+        expires max;
+        alias {{ ctx("nginx.document_root") }}/static;
+    }
+
+    location /media {
+        expires max;
+        alias {{ ctx("nginx.document_root") }}/media;
+    }
+
+    location / {
+        include /etc/nginx/uwsgi_params;
+        uwsgi_pass unix:///dev/shm/{{ ctx('django.project_name') }}-{{ ctx("nginx.server_name") }}.sock;
+        uwsgi_param UWSGI_FASTROUTER_KEY $host;
+        uwsgi_buffering off;
+        proxy_set_header X-Forwarded-Protocol $scheme;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_pass_header Server;
+        proxy_set_header Host $http_host;
+        proxy_redirect off;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Scheme $scheme;
+    }
+}
