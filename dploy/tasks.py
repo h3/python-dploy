@@ -2,6 +2,7 @@ import os
 import sys
 import pprint
 import time
+import fabtools
 
 from jinja2 import Template
 from jinja2.exceptions import TemplateNotFound
@@ -260,19 +261,49 @@ def django(cmd):
 
 
 @task
+def install_letsencrypt():
+    fabtools.deb.add_apt_key(keyid='75BCA694 ')
+    sudo('add-apt-repository ppa:certbot/certbot')
+    sudo('apt-get update')
+    fabtools.deb.install([
+        'software-properties-common',
+        'python-certbot-nginx'
+    ])
+    sudo('certbot --authenticator webroot --installer nginx')
+
+
+@task
+def setup_letsencrypt():
+    server_name = ctx("nginx.server_name")
+    lpath = '/etc/letsencrypt/live'
+    env.context['ssl']['dhparams'] = '/etc/letsencrypt/ssl-dhparams.pem'
+    env.context['ssl']['key'] = '{}/{}/privkey.pem'.format(lpath, server_name)
+    env.context['ssl']['cert'] = '{}/{}/fullchain.pem'.format(lpath,
+                                                              server_name)
+    files.upload_template(
+        'nginx_ssl.template', ctx('nginx.config_path'),
+        context=context, use_jinja=True, template_dir='dploy/',
+        use_sudo=True, backup=False, mode=None)
+
+
+@task
 def setup_nginx():
     print(cyan('Configuring nginx on {}'.format(env.stage)))
 
     ssl = False
     context = {
         'ctx': ctx,
+        'ssl_letsencrypt': False,
         'ssl_with_dhparam': False,
         'ssl_cert': None,
         'ssl_key': None,
         'project_dir': get_project_dir(),
     }
 
-    if ctx('ssl.key') and ctx('ssl.cert'):
+    if ctx('ssl.letsencrypt'):
+        ssl = True
+        execute(setup_letsencrypt)
+    elif ctx('ssl.key') and ctx('ssl.cert'):
         ssl = True
         if files.exists(ctx('ssl.key'), use_sudo=True):
             context['ssl_key'] = ctx('ssl.key')
@@ -280,16 +311,16 @@ def setup_nginx():
             context['ssl_cert'] = ctx('ssl.cert')
         if files.exists(ctx('ssl.dhparam'), use_sudo=True):
             context['ssl_with_dhparam'] = True
-    if ssl:
-        files.upload_template(
-            'nginx_ssl.template', ctx('nginx.config_path'),
-            context=context, use_jinja=True, template_dir='dploy/',
-            use_sudo=True, backup=False, mode=None)
-    else:
-        files.upload_template(
-            'nginx.template', ctx('nginx.config_path'),
-            context=context, use_jinja=True, template_dir='dploy/',
-            use_sudo=True, backup=False, mode=None)
+        if ssl:
+            files.upload_template(
+                'nginx_ssl.template', ctx('nginx.config_path'),
+                context=context, use_jinja=True, template_dir='dploy/',
+                use_sudo=True, backup=False, mode=None)
+        else:
+            files.upload_template(
+                'nginx.template', ctx('nginx.config_path'),
+                context=context, use_jinja=True, template_dir='dploy/',
+                use_sudo=True, backup=False, mode=None)
 
     if files.exists(ctx('nginx.document_root'), use_sudo=True):
         sudo('chown -R {user}:{group} {path}'.format(
