@@ -56,6 +56,10 @@ def get_template_dir(name):
     return None
 
 
+def get_template_path(name):
+    return os.path.join(get_template_dir(name), name)
+
+
 def select_template(templates):
     """
     Returns the first file that exists from a list of file paths
