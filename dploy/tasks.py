@@ -15,6 +15,7 @@ from dploy.context import get_context, ctx, get_project_dir
 from dploy.commands import pip, manage
 from dploy.utils import (
     FabricException, git_dirname, version_supports_migrations, select_template,
+    upload_template,
 )
 
 TEMPLATES_DIR = './dploy/'
@@ -178,10 +179,7 @@ def setup_django_settings():
     templates_dir = os.path.dirname(template)
     _settings_dest = os.path.join(project_dir, project_name,
                                   'local_settings.py')
-    files.upload_template(filename, _settings_dest,
-                          context={'ctx': ctx, 'project_dir': project_dir},
-                          use_jinja=True, template_dir=templates_dir,
-                          use_sudo=True, backup=False, mode=None)
+    upload_template(filename, _settings_dest, template_dir=templates_dir)
 
 
 @task
@@ -226,10 +224,7 @@ def setup_cron():
     filename = ctx('nginx.server_name').replace('.', '_')
     dest = os.path.join(ctx('cron.config_path'), filename)
     try:
-        files.upload_template('cron.template', dest,
-                              context={'ctx': ctx}, use_jinja=True,
-                              template_dir=TEMPLATES_DIR, use_sudo=True,
-                              backup=False, mode=None)
+        upload_template('cron.template', dest)
 
         print(cyan('Configuring cron {}'.format(env.stage)))
         # We make sure the cron file always ends with a blank line, otherwise
@@ -252,10 +247,7 @@ def setup_uwsgi():
     sudo('touch {logfile}'.format(logfile=log_file))
     sudo('chown {user}:{group} {logfile}'.format(
         logfile=log_file, user=ctx('system.user'), group=ctx('system.group')))
-    files.upload_template('uwsgi.template', uwsgi_ini,
-                          context=context, use_jinja=True,
-                          template_dir=TEMPLATES_DIR, use_sudo=True,
-                          backup=False, mode=None)
+    upload_template('uwsgi.template', uwsgi_ini, context=context)
 
 
 @task
@@ -284,28 +276,20 @@ def setup_letsencrypt():
     env.context['ssl']['key'] = '{}/{}/privkey.pem'.format(lpath, server_name)
     env.context['ssl']['cert'] = '{}/{}/fullchain.pem'.format(lpath,
                                                               server_name)
-    files.upload_template(
-        'nginx_ssl.template', ctx('nginx.config_path'),
-        context=env.context, use_jinja=True, template_dir='dploy/',
-        use_sudo=True, backup=False, mode=None)
+    upload_template('nginx_ssl.template', ctx('nginx.config_path'))
 
 
 @task
 def setup_nginx():
     print(cyan('Configuring nginx on {}'.format(env.stage)))
-
-    ssl = False
     context = {
-        'ctx': ctx,
         'ssl_letsencrypt': False,
         'ssl_with_dhparam': False,
         'ssl_cert': None,
         'ssl_key': None,
-        'project_dir': get_project_dir(),
     }
 
     if ctx('ssl.letsencrypt'):
-        ssl = True
         execute(setup_letsencrypt)
     elif ctx('ssl.key') and ctx('ssl.cert'):
         ssl = True
@@ -316,15 +300,11 @@ def setup_nginx():
         if files.exists(ctx('ssl.dhparam'), use_sudo=True):
             context['ssl_with_dhparam'] = True
         if ssl:
-            files.upload_template(
-                'nginx_ssl.template', ctx('nginx.config_path'),
-                context=context, use_jinja=True, template_dir='dploy/',
-                use_sudo=True, backup=False, mode=None)
+            upload_template(
+                'nginx_ssl.template', ctx('nginx.config_path'), context=context)
         else:
-            files.upload_template(
-                'nginx.template', ctx('nginx.config_path'),
-                context=context, use_jinja=True, template_dir='dploy/',
-                use_sudo=True, backup=False, mode=None)
+            upload_template(
+                'nginx.template', ctx('nginx.config_path'), context=context)
 
     if files.exists(ctx('nginx.document_root'), use_sudo=True):
         sudo('chown -R {user}:{group} {path}'.format(
@@ -339,14 +319,11 @@ def setup_supervisor():
     print(cyan('Configuring supervisor {}'.format(env.stage)))
     project_dir = get_project_dir()
     uwsgi_ini = os.path.join(project_dir, 'uwsgi.ini')
-    context = {'project_dir': project_dir, 'uwsgi_ini': uwsgi_ini, 'ctx': ctx}
+    context = {'uwsgi_ini': uwsgi_ini}
     dest = os.path.join(
         ctx('supervisor.dirs.root'),
         '{}.conf'.format(ctx('nginx.server_name').replace('.', '_')))
-    files.upload_template(
-        'supervisor.template', dest,
-        context=context, use_jinja=True, template_dir='dploy/', use_sudo=True,
-        backup=False, mode=None)
+    upload_template('supervisor.template', dest, context=context)
     sudo('supervisorctl reload')
 
 
