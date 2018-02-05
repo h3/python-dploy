@@ -1,0 +1,20 @@
+[uwsgi]
+
+master = true
+callable = application
+env = wsgi.url_scheme=https
+env = DISPLAY=:0
+max-fd = {{ ctx("uwsgi.max_fd", default="10240") }}
+die-on-term = {{ ctx("uwsgi.die_on_term", default="true") }}
+enable-threads = {{ ctx("uwsgi.threads", default="true") }}
+socket = /dev/shm/{{ ctx('django.project_name') }}-{{ ctx("nginx.server_name") }}.sock
+chmod-socket = 664
+uid = {{ ctx("uwsgi.user", default="www-data") }}
+gid = {{ ctx("uwsgi.group", default="www-data") }}
+processes = {{ ctx("uwsgi.processes", default=2) }}
+virtualenv = {{ ctx("virtualenv.dirs.root") }}/{{ ctx("virtualenv.name") }}
+chdir = {{ project_dir }}
+pythonpath = {{ project_dir }}
+wsgi-file = {{ wsgi_file }}
+touch-reload = {{ wsgi_file }}
+logto = {{ ctx("logs.dirs.root") }}/uwsgi.log

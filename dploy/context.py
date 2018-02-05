@@ -7,6 +7,7 @@ from io import BytesIO
 from jinja2 import Template
 
 from fabric.api import env, get
+from fabric.utils import abort
 from fabric.colors import red
 from fabric.contrib import files
 
@@ -67,7 +68,7 @@ def get_context():
     return base_context
 
 
-def ctx(path, context=None):
+def ctx(path, default=None, context=None):
     if path == 'stage':
         return env.stage
     elif path == 'base_path':
@@ -84,8 +85,11 @@ def ctx(path, context=None):
         try:
             val = val.get(tokens.pop())
         except AttributeError:
-            print(red('Configuration error: {}'.format(path)))
-            sys.exit(1)
+            if default:
+                val = default
+                break
+            else:
+                abort(red('Configuration error: {}'.format(path)))
     if isinstance(val, str):
         if context is None:
             context = env.context
