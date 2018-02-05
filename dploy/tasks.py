@@ -214,6 +214,13 @@ def django_collectstatic():
 
 
 @task
+def setup_django():
+    execute(setup_django_settings)
+    execute(django_migrate)
+    execute(django_collectstatic)
+
+
+@task
 def setup_cron():
     # Cron doesn't like dots in filename
     filename = ctx('nginx.server_name').replace('.', '_')
