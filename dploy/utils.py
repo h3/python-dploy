@@ -3,7 +3,10 @@ import yaml
 import dploy
 
 from fabric.colors import red
+from fabric.contrib import files
 from fabric.api import env
+
+from dploy.context import ctx, get_project_dir
 
 
 class FabricException(Exception):
@@ -68,3 +71,35 @@ def select_template(templates):
         if os.path.exists(tpl):
             return tpl
     return None
+
+
+def upload_template(name, path, **kwargs):
+    """
+    This function takes a template name and a destination path.
+
+    It is a proxy function for files.upload_template with sensible defaults and
+    context preseeding.
+
+    It will also lookup for the template at two specific places:
+        1. <project_dir>/deploy/
+        2. <dploy_package_dir>/templates/
+    """
+    _context = env.context
+    _context.update({
+        'ctx': ctx,
+        'project_dir': get_project_dir(),
+    })
+    if kwargs.get('context'):
+        _context.update(kwargs.get('context'))
+        del kwargs['context']
+    defaults = {
+        'context': _context,
+        'use_jinja': True,
+        'use_sudo': True,
+        'backup': False,
+        'mode': None,
+    }
+    defaults.update(kwargs)
+    if not kwargs.get('template_dir'):
+        kwargs['template_dir'] = get_template_dir(name)
+    return files.upload_template(name, path, **defaults)
