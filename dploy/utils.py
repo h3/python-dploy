@@ -1,16 +1,13 @@
 import os
 import yaml
+import dploy
+
+from fabric.colors import red
+from fabric.api import env
 
 
 class FabricException(Exception):
     pass
-
-
-def select_template(templates):
-    for tpl in templates:
-        if os.path.exists(tpl):
-            return tpl
-    return None
 
 
 def load_yaml(path):
@@ -20,7 +17,7 @@ def load_yaml(path):
                 rs = yaml.load(fd)
             except yaml.YAMLError as e:
                 rs = None
-                print(e)  # TODO: use logging
+                print(red(e))
     except IOError:
         rs = None
     return rs
@@ -42,3 +39,28 @@ def version_supports_migrations(v):
         return True
     else:
         return False
+
+
+def get_template_dir(name):
+    """
+    Returns "deploy/" if the template exists at project level, otherwise
+    returns "package_dir/templates/" of ot exists.
+    Returns None if the template does not exists.
+    """
+    local_path = os.path.join(env.base_path, 'dploy/', name)
+    if os.path.exists(local_path):
+        return 'dploy/'
+    package_path = os.path.join(dploy.__file__, 'templates/')
+    if os.path.exists(os.path.join(package_path, name)):
+        return package_path
+    return None
+
+
+def select_template(templates):
+    """
+    Returns the first file that exists from a list of file paths
+    """
+    for tpl in templates:
+        if os.path.exists(tpl):
+            return tpl
+    return None

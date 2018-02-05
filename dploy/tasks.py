@@ -251,9 +251,6 @@ def setup_uwsgi():
                           backup=False, mode=None)
 
 
-# ---
-
-
 @task
 def django(cmd):
     print(cyan("Django manage {} on {}".format(cmd, env.stage)))
@@ -282,7 +279,7 @@ def setup_letsencrypt():
                                                               server_name)
     files.upload_template(
         'nginx_ssl.template', ctx('nginx.config_path'),
-        context=context, use_jinja=True, template_dir='dploy/',
+        context=env.context, use_jinja=True, template_dir='dploy/',
         use_sudo=True, backup=False, mode=None)
 
 
