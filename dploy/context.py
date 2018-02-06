@@ -84,12 +84,17 @@ def ctx(path, default=None, context=None):
     while len(tokens):
         try:
             val = val.get(tokens.pop())
-        except AttributeError:
-            if default:
-                val = default
+            if len(tokens) == 0:
                 break
-            else:
-                abort(red('Configuration error: {}'.format(path)))
+        except AttributeError:
+            val = None
+            break
+
+    if not val and default is not None:
+        val = default
+    elif not val:
+        abort(red('Configuration error: {}'.format(path)))
+
     if isinstance(val, str):
         if context is None:
             context = env.context

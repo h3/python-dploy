@@ -6,8 +6,6 @@ from fabric.colors import red
 from fabric.contrib import files
 from fabric.api import env
 
-from dploy.context import ctx, get_project_dir
-
 
 class FabricException(Exception):
     pass
@@ -53,7 +51,8 @@ def get_template_dir(name):
     local_path = os.path.join(env.base_path, 'dploy/', name)
     if os.path.exists(local_path):
         return 'dploy/'
-    package_path = os.path.join(dploy.__file__, 'templates/')
+    package_path = os.path.realpath(os.path.join(
+        os.path.dirname(dploy.__file__), '../templates'))
     if os.path.exists(os.path.join(package_path, name)):
         return package_path
     return None
@@ -86,8 +85,8 @@ def upload_template(name, path, **kwargs):
     """
     _context = env.context
     _context.update({
-        'ctx': ctx,
-        'project_dir': get_project_dir(),
+        'ctx': dploy.context.ctx,
+        'project_dir': dploy.context.get_project_dir(),
     })
     if kwargs.get('context'):
         _context.update(kwargs.get('context'))
@@ -101,5 +100,10 @@ def upload_template(name, path, **kwargs):
     }
     defaults.update(kwargs)
     if not kwargs.get('template_dir'):
-        kwargs['template_dir'] = get_template_dir(name)
-    return files.upload_template(name, path, **defaults)
+        defaults['template_dir'] = get_template_dir(name)
+
+    if defaults.get('template_dir'):
+        return files.upload_template(name, path, **defaults)
+    else:
+        # log ?
+        return None
