@@ -20,6 +20,8 @@ nginx:
     server_name: ''
     document_root: '/var/www/vhosts/{{ nginx["server_name"] }}'
     config_path: '/etc/nginx/sites-enabled/{{ nginx["server_name"] }}'
+    client_max_body_size: '10M'
+    keepalive_timeout: 50
 
 virtualenv:
     name: 'venv'
@@ -27,8 +29,10 @@ virtualenv:
         root: '/var/www/vhosts/{{ nginx["server_name"] }}'
 
 uwsgi:
-    pass: '/dev/shm/{{ nginx["server_name"] }}.sock'
-    processes: 1
+    pass: '/dev/shm/{{ django["project_name"] }}-{{ nginx["server_name"] }}.sock'
+    processes: 2
+    buffering: 'off'
+    ignore_client_abort: 'on'
 
 cron:
     config_path: '/etc/cron.d/' # CRON_PATH

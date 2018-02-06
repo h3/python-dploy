@@ -1,14 +1,18 @@
+{% if ctx("ssl.letsencrypt", default=False) %}
 map $uri $redirect_https {
     /.well-known/acme-challenge 0;
     default 1;
 }
+{% endif %}
 
 server {
     listen {{ ctx("nginx.server_ip") }}:80;
     server_name {{ ctx("nginx.server_name") }};
+    {% if ctx("ssl.letsencrypt", default=False) %}
     location /.well-known/acme-challenge {
       root /var/www/html;
     }
+    {% endif %}
     if ($redirect_https = 1) {
       rewrite ^ https://$server_name$request_uri permanent;
     }
@@ -17,11 +21,11 @@ server {
 server {
     server_name {{ ctx("nginx.server_name") }};
     listen {{ ctx("nginx.server_ip") }}:443;
-    client_max_body_size 20M;
-    keepalive_timeout 70;
+    client_max_body_size {{ ctx("nginx.client_max_body_size", default="10M") }};
+    keepalive_timeout {{ ctx("nginx.keepalive_timeout", default="50") }};
 
     # https://stackoverflow.com/questions/34768527/uwsgi-ioerror-write-error
-    uwsgi_ignore_client_abort on;
+    uwsgi_ignore_client_abort {{ ctx('uwsgi.ignore_client_abort', default="on") }};
 
     {% if ctx("ssl.letsencrypt", default=False) %}
     ssl on;
@@ -51,9 +55,9 @@ server {
 
     location / {
         include /etc/nginx/uwsgi_params;
-        uwsgi_pass unix:///dev/shm/{{ ctx('django.project_name') }}-{{ ctx("nginx.server_name") }}.sock;
+        uwsgi_pass unix://{{ ctx("uwsgi.pass") }};
         uwsgi_param UWSGI_FASTROUTER_KEY $host;
-        uwsgi_buffering off;
+        uwsgi_buffering {{ ctx('uwsgi.buffering', default="off") }};
         proxy_set_header X-Forwarded-Protocol $scheme;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_pass_header Server;
