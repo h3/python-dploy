@@ -334,9 +334,10 @@ def setup_letsencrypt():
     upload_template('nginx_letsencrypt.template', ctx('nginx.config_path'),
                     context={
                         'ssl': {
+                            'letsencrypt': True,
                             'dhparams': path_dhparams,
-                            'key': path_cert,
-                            'cert': path_key,
+                            'key': path_key,
+                            'cert': path_cert,
                         }
                     })
 
@@ -355,11 +356,15 @@ def setup_nginx():
         execute(setup_letsencrypt)
     elif ctx('ssl.key') and ctx('ssl.cert'):
         ssl = True
-        if files.exists(ctx('ssl.key'), use_sudo=True):
+        dhparams = ctx('ssl.dhparam', default=False)
+        key = ctx('ssl.key', default=False)
+        cert = ctx('ssl.cert', default=False)
+
+        if key and files.exists(key, use_sudo=True):
             context['ssl_key'] = ctx('ssl.key')
-        if files.exists(ctx('ssl.cert'), use_sudo=True):
+        if cert and files.exists(cert, use_sudo=True):
             context['ssl_cert'] = ctx('ssl.cert')
-        if files.exists(ctx('ssl.dhparam'), use_sudo=True):
+        if dhparams and files.exists(dhparams, use_sudo=True):
             context['ssl_with_dhparam'] = True
         if ssl:
             upload_template(
