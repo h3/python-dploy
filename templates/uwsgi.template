@@ -7,7 +7,7 @@ env = DISPLAY=:0
 max-fd = {{ ctx("uwsgi.max_fd", default="10240") }}
 die-on-term = {{ ctx("uwsgi.die_on_term", default="true") }}
 enable-threads = {{ ctx("uwsgi.threads", default="true") }}
-socket = /dev/shm/{{ ctx('django.project_name') }}-{{ ctx("nginx.server_name") }}.sock
+socket = {{ ctx("uwsgi.pass") }}
 chmod-socket = 664
 uid = {{ ctx("uwsgi.user", default="www-data") }}
 gid = {{ ctx("uwsgi.group", default="www-data") }}
