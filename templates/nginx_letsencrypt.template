@@ -45,12 +45,12 @@ server {
 
     location /static {
         expires max;
-        alias {{ ctx("nginx.document_root") }}/static;
+        alias {{ ctx("django.dirs.static_root") }};
     }
 
     location /media {
         expires max;
-        alias {{ ctx("nginx.document_root") }}/media;
+        alias {{ ctx("django.dirs.media_root") }};
     }
 
     location / {
