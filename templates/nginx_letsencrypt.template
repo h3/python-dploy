@@ -23,12 +23,13 @@ server {
     # https://stackoverflow.com/questions/34768527/uwsgi-ioerror-write-error
     uwsgi_ignore_client_abort on;
 
+    {% if ctx("ssl.letsencrypt", default=False) %}
     ssl on;
     ssl_certificate {{ ctx("ssl.cert") }}; # managed by Certbot
     ssl_certificate_key {{ ctx("ssl.key") }}; # managed by Certbot
     include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
-    {{ ctx("ssl.dhparam") }}
+    ssl_dhparam {{ ctx("ssl.dhparams", default=False) }}; # managed by Certbot
+    {% endif %}
 
     access_log {{ ctx("logs.dirs.root") }}/nginx-access;
     error_log {{ ctx("logs.dirs.root") }}/nginx-error;
