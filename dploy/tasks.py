@@ -3,6 +3,7 @@ import sys
 import pprint
 import time
 import fabtools
+import tempfile
 
 from jinja2 import Template
 from jinja2.exceptions import TemplateNotFound
@@ -10,6 +11,7 @@ from jinja2.exceptions import TemplateNotFound
 from fabric.colors import cyan, green, red, yellow
 from fabric.api import task, env, cd, sudo, local, get, hide, run, execute  # noqa
 from fabric.contrib import files
+from fabric.utils import abort
 
 from dploy.context import get_context, ctx, get_project_dir
 from dploy.commands import pip, manage
@@ -19,6 +21,24 @@ from dploy.utils import (
 )
 
 TEMPLATES_DIR = './dploy/'
+CONTEXT_TEMPLATE = """
+django:
+    scret_key: '{{ ctx('django.secret_key ') }}'
+
+databases:
+    default:
+        user: ''
+        name: ''
+        password: ''
+        host: ''
+
+email:
+    host: ''
+    tls: true
+    port: 587
+    user: ''
+    pass: ''
+"""
 
 
 @task
@@ -62,6 +82,25 @@ def install_system_dependencies():
             sudo(_cmd)
 
 
+# @task
+# def configure_context():
+#     if env.stage == 'dev':
+#         abort(red('This task is only for remote stages.'))
+#     context_path = '/root/.context/{project}/{stage}.yml'.format(**{
+#         'project': ctx('django.project_name'),
+#         'stage': env.stage,
+#     })
+#     if files.exists(context_path, use_sudo=True):
+#         # TODO: interactive edit
+#         # http://klenwell.com/is/FabricEditRemoteFile
+#         print('Context already exists')
+#     else:
+#         with tempfile.TemporaryFile() as tmp:
+#             tmp.write(CONTEXT_TEMPLATE)
+#             import IPython
+#             IPython.embed()
+
+
 @task
 def create_dirs():
     """
@@ -89,6 +128,8 @@ def checkout():
     git_root = ctx('git.dirs.root')
     git_dir = git_dirname(ctx('git.repository'))
     git_path = os.path.join(git_root, git_dir)
+    if not fabtools.deb.is_installed('git'):
+        fabtools.deb.install('git')
     if files.exists(os.path.join(git_path, '.git'), use_sudo=True):
         print(cyan('Updating {} on {}'.format(branch, env.stage)))
         with cd(git_path):
@@ -112,6 +153,8 @@ def setup_virtualenv():
     venv_root = ctx('virtualenv.dirs.root')
     venv_name = ctx('virtualenv.name')
     lib_root = os.path.join(venv_root, venv_name, 'lib')
+    if not fabtools.deb.is_installed('python-virtualenv'):
+        fabtools.deb.install('python-virtualenv')
     if not files.exists(lib_root, use_sudo=True):
         print(cyan("Setuping virtualenv on {}".format(env.stage)))
         with cd(venv_root):
@@ -134,7 +177,7 @@ def install_requirements():
         print(cyan("Installing requirements.txt on {}".format(env.stage)))
         pip('install -qr {}'.format(requirements_txt))
 
-    extra_requirements = ctx('virtualenv.extra_requirements')
+    extra_requirements = ctx('virtualenv.extra_requirements', default=False)
     if extra_requirements and isinstance(extra_requirements, list):
         for req in extra_requirements:
             if files.exists(requirements_txt, use_sudo=True):
@@ -258,25 +301,44 @@ def django(cmd):
 
 @task
 def install_letsencrypt():
-    fabtools.deb.add_apt_key(keyid='75BCA694 ')
+    # TODO: detect unsupported platforms
+    if not fabtools.deb.is_installed('software-properties-common'):
+        fabtools.deb.install('software-properties-common')
+    fabtools.deb.add_apt_key(keyid='75BCA694', keyserver='keyserver.ubuntu.com')
     sudo('add-apt-repository ppa:certbot/certbot')
-    sudo('apt-get update')
+    fabtools.deb.update_index()
+    fabtools.deb.upgrade(safe=True)
     fabtools.deb.install([
         'software-properties-common',
         'python-certbot-nginx'
     ])
-    sudo('certbot --authenticator webroot --installer nginx')
 
 
 @task
 def setup_letsencrypt():
     server_name = ctx("nginx.server_name")
-    lpath = '/etc/letsencrypt/live'
-    env.context['ssl']['dhparams'] = '/etc/letsencrypt/ssl-dhparams.pem'
-    env.context['ssl']['key'] = '{}/{}/privkey.pem'.format(lpath, server_name)
-    env.context['ssl']['cert'] = '{}/{}/fullchain.pem'.format(lpath,
-                                                              server_name)
-    upload_template('nginx_ssl.template', ctx('nginx.config_path'))
+    path_letsencrypt = '/etc/letsencrypt/live'
+    path_dhparams = '/etc/letsencrypt/ssl-dhparams.pem'
+    path_key = '{}/{}/privkey.pem'.format(path_letsencrypt, server_name)
+    path_cert = '{}/{}/fullchain.pem'.format(path_letsencrypt, server_name)
+
+    if not fabtools.deb.is_installed('certbot'):
+        execute(install_letsencrypt)
+
+    if not files.exists(path_cert, use_sudo=True):
+        upload_template('nginx_letsencrypt_init.template',
+                        ctx('nginx.config_path'))
+        sudo('certbot --authenticator webroot --installer nginx -d {}'.format(
+            server_name))
+
+    upload_template('nginx_letsencrypt.template', ctx('nginx.config_path'),
+                    context={
+                        'ssl': {
+                            'dhparams': path_dhparams,
+                            'key': path_cert,
+                            'cert': path_key,
+                        }
+                    })
 
 
 @task
@@ -317,6 +379,8 @@ def setup_nginx():
 @task
 def setup_supervisor():
     print(cyan('Configuring supervisor {}'.format(env.stage)))
+    if not fabtools.deb.is_installed('supervisor'):
+        fabtools.deb.install('supervisor')
     project_dir = get_project_dir()
     uwsgi_ini = os.path.join(project_dir, 'uwsgi.ini')
     context = {'uwsgi_ini': uwsgi_ini}
@@ -324,7 +388,10 @@ def setup_supervisor():
         ctx('supervisor.dirs.root'),
         '{}.conf'.format(ctx('nginx.server_name').replace('.', '_')))
     upload_template('supervisor.template', dest, context=context)
+    if not fabtools.service.is_running('supervisor'):
+        fabtools.service.start('supervisor')
     sudo('supervisorctl reload')
+    #print(fabtools.supervisor.process_status('supervisor'))
 
 
 @task
