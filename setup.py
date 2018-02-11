@@ -20,10 +20,12 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     zip_safe=True,
+    scripts=['dploy/bin/python-dploy'],
     install_requires=[
         'PyYAML>=3.12',
         'Jinja2>=2.9.5',
         'Fabric>=1.14.0',
+        'click>=6.7',
     ],
     classifiers=[
         'Environment :: Console',

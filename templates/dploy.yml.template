@@ -1,0 +1,39 @@
+global:
+
+    django:
+        project_name: '{{ project_name }}'
+    git:
+        repository: '{{ git_repository }}'
+        dir: '{{ git_dir }}'
+        branch: 'master'
+    databases:
+        default:
+            engine: 'django.db.backends.mysql'
+    ssl:
+        letsencrypt: true
+    system:
+        packages: |-
+            python python-dev python-pip python-virtualenv supervisor\
+            libjpeg-dev git bc zlib1g-dev libffi-dev libyaml-dev
+
+stages:
+
+    beta:
+        hosts: ['beta.domain.com']
+        nginx:
+            server_name: 'beta.comain.com'
+            server_ip: '123.123.123.123'
+        git:
+            branch: 'master'
+        uwsgi:
+            processes: 2
+
+    prod:
+        hosts: ['domain.com']
+        nginx:
+            server_name: 'domain.com'
+            server_ip: '123.123.123.123'
+        git:
+            branch: 'master'
+        uwsgi:
+            processes: 4
