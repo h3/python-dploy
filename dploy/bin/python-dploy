@@ -1,16 +1,33 @@
 #!/usr/bin/env python
+"""Python dploy
 
-import click
+Usage:
+  python-dploy init <name>...
+  python-dploy init <name> [--git-repository=<git_repo> | --git-dir=<git_dir>]
+  python-dploy (-h | --help)
+  python-dploy --version
+
+Options:
+  -h --help     Show this screen.
+  --version     Show version.
+  --git-repository=<git-repo>  Git repository.
+  --git-dir=<git-dir>  Git directory name.
+
+"""
+from docopt import docopt
 
 
-@click.command()
-@click.option('--name', prompt='Django project name',
-              help='Django project name')
-def init(name):
+def init(args):
     """Initialize dploy configurations for a given project"""
-
+    name = args.get('<name>').pop()
     print("CREATING PROJECT CONF")
     print(__file__)
+    print(name)
+    print(args)
 
-# if __name__ == '__main__':
-#     init()
+
+if __name__ == '__main__':
+    args = docopt(__doc__, version='Python dploy 1.0')
+
+    if args.get('init'):
+        init(args)

@@ -25,7 +25,7 @@ setup(
         'PyYAML>=3.12',
         'Jinja2>=2.9.5',
         'Fabric>=1.14.0',
-        'click>=6.7',
+        'docopt>=0.6.2',
     ],
     classifiers=[
         'Environment :: Console',
