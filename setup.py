@@ -26,6 +26,7 @@ setup(
         'Jinja2>=2.9.5',
         'Fabric>=1.14.0',
         'docopt>=0.6.2',
+        'fabtools>=0.20.0',
     ],
     classifiers=[
         'Environment :: Console',
