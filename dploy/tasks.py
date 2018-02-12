@@ -388,15 +388,17 @@ def setup_supervisor():
         fabtools.deb.install('supervisor')
     project_dir = get_project_dir()
     uwsgi_ini = os.path.join(project_dir, 'uwsgi.ini')
+    process_name = '{}-{}'.format(env.stage, ctx('django.process_name'))
     context = {'uwsgi_ini': uwsgi_ini}
     dest = os.path.join(
         ctx('supervisor.dirs.root'),
         '{}.conf'.format(ctx('nginx.server_name').replace('.', '_')))
     upload_template('supervisor.template', dest, context=context)
-    if not fabtools.service.is_running('supervisor'):
-        fabtools.service.start('supervisor')
-    sudo('supervisorctl reload')
-    #print(fabtools.supervisor.process_status('supervisor'))
+    fabtools.supervisor.update_config()
+    if fabtools.supervisor.process_status(process_name) == 'RUNNING':
+        fabtools.supervisor.restart_process(process_name)
+    elif fabtools.supervisor.process_status(process_name) == 'STOPPED':
+        fabtools.supervisor.start_process(process_name)
 
 
 @task
