@@ -1,50 +1,40 @@
 """
+This fabfile is used to deploy mp project
+
+The project can be deployed as follow:
+
 $ fab on:prod deploy
+
+Tasks can be chained:
+
+$ fab on:prod virtualenv_setup install_requirements
+
+Multi stage deployment can also be chained:
+
+$ fab on:beta deploy on:prod deploy
+
+
+Documentation: https://github.com/h3/python-dploy
+
 """
-
 import os
-
-from fabric.colors import cyan
-
-from dploy.commands import manage
-from dploy.tasks import (  # noqa
-    env, task, execute, on, print_context, create_dirs, checkout,
-    setup_virtualenv, install_requirements, setup_django_settings,
-    django_migrate, django_collectstatic, setup_cron, setup_cron, setup_django,
-    setup_uwsgi, setup_supervisor, setup_nginx, install_system_dependencies
-)
-
+from dploy.tasks import *  # noqa
 env.base_path = os.path.dirname(__file__)
 
+# Uncomment the following block if you need to customize the
+# deployment workflow
+
 """
-@task
-def rollback_list():
-    manage('rollback --list')
-
-
-@task
-def rollback_create():
-    print(cyan('Creating rollback on %s' % env.stage))
-    manage('rollback --create --no-media')
-
-
-@task
-def rollback_restore(uid=None):
-    print(cyan('Restoring rollback on %s' % env.stage))
-    manage('rollback --restore {}'.format(uid))
-"""
-
 @task
 def deploy(upgrade=False):
     print(cyan("Deploying project on {} !".format(env.stage)))
-    # if env.stage == 'prod':
-    #    execute(rollback_create)
     execute(create_dirs)
     execute(checkout)
-    execute(setup_virtualenv)
+    execute(virtualenv_setup)
     execute(install_requirements, upgrade=upgrade)
-    execute(setup_django)
-    execute(setup_cron)
-    execute(setup_uwsgi)
-    execute(setup_supervisor)
-    execute(setup_nginx)
+    execute(django_setup)
+    execute(cron_setup)
+    execute(uwsgi_setup)
+    execute(supervisor_setup)
+    execute(nginx_setup)
+"""

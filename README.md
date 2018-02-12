@@ -20,6 +20,118 @@ Created dploy.yml
 Created fabfile.py
 ```
 
+### Usage and commands
+
+```bash
+(venv)$ fab -l
+
+This fabfile is used to deploy mp project
+
+The project can be deployed as follow:
+
+$ fab on:prod deploy
+
+Tasks can be chained:
+
+$ fab on:prod virtualenv_setup install_requirements
+
+Multi stage deployment can also be chained:
+
+$ fab on:beta deploy on:prod deploy
+
+
+Documentation: https://github.com/h3/python-dploy
+
+
+Available commands:
+
+    checkout                     Checkouts the code on the remote location using git
+    create_dirs                  Creates necessary directories and apply user/group permissions
+    cron_setup                   Configure Cron if a dploy/cron.template exists
+    deploy                       Perform all deployment tasks sequentially
+    django                       Runs django manage.py with a given command
+    django_collectstatic         Collect static medias
+    django_migrate               Perform django migration (only if the django version is >= 1.7)
+    django_setup                 Performs django_setup_settings, django_migrate and django_collects...
+    django_setup_settings        Takes the dploy/<STAGE>_settings.py template and upload it to remo...
+    install_requirements         Installs pip requirements
+    install_system_dependencies  Install system dependencies (dploy.yml:system.packages)
+    letsencrypt_install          Install letsencrypt's certbot
+    letsencrypt_setup            Configure SSL with letsencrypt's certbot for the domain
+    nginx_setup                  Configure nginx, will trigger letsencrypt setup if required
+    on                           Sets the stage to perform action on
+    print_context                Prints deployment context
+    supervisor_setup             Configure supervisor to monitor the uwsgi process
+    uwsgi_setup                  Configure uWSGI
+    virtualenv_setup             Setup virtualenv on the remote location
+```
+
+
+### Project level fabfile.py
+
+The `python-dploy init projectname` command will generate a `fabfile.py`
+template that works of out the box using the default deploy task.
+
+This is all that is needed:
+
+```python
+import os
+from dploy.tasks import *  # noqa
+env.base_path = os.path.dirname(__file__)
+```
+
+
+### Tweaking default workflow
+
+Here's an example of deploy workflow tweak to add a rollback
+step that runs only on the production stage:
+
+
+```python
+import os
+from dploy.tasks import *  # noqa
+env.base_path = os.path.dirname(__file__)
+
+
+@task
+def rollback_list():
+    if env.stage == 'prod':
+        manage('rollback --list')
+
+
+@task
+def rollback_create():
+    if env.stage == 'prod':
+        print(cyan('Creating rollback on %s' % env.stage))
+        manage('rollback --create --no-media')
+
+
+@task
+def rollback_restore(uid=None):
+    if env.stage == 'prod':
+        print(cyan('Restoring rollback on %s' % env.stage))
+        manage('rollback --restore {}'.format(uid))
+
+
+@task
+def deploy(upgrade=False):
+    print(cyan("Deploying project on {} !".format(env.stage)))
+    if env.stage == 'prod':
+        execute(rollback_create)
+    execute(create_dirs)
+    execute(checkout)
+    execute(virtualenv_setup)
+    execute(install_requirements, upgrade=upgrade)
+    execute(django_setup)
+    execute(cron_setup)
+    execute(uwsgi_setup)
+    execute(supervisor_setup)
+    execute(nginx_setup)
+```
+
+**Note**: This is an example that assumes that there is a `rollback` management command present in the django project.
+
+
 ## Project commands
 
 
