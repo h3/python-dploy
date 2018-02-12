@@ -1,0 +1,16 @@
+django:
+    scret_key: '{{ ctx('django.secret_key ') }}'
+
+databases:
+    default:
+        user: ''
+        name: ''
+        password: ''
+        host: ''
+
+email:
+    host: ''
+    tls: true
+    port: 587
+    user: ''
+    pass: ''

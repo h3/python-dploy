@@ -12,6 +12,7 @@ from fabric.colors import cyan, green, red, yellow
 from fabric.api import task, env, cd, sudo, local, get, hide, run, execute  # noqa
 from fabric.contrib import files
 from fabric.utils import abort
+from fabtools import require
 
 from dploy.context import get_context, ctx, get_project_dir
 from dploy.commands import pip, manage
@@ -19,26 +20,6 @@ from dploy.utils import (
     FabricException, git_dirname, version_supports_migrations, select_template,
     upload_template,
 )
-
-TEMPLATES_DIR = './dploy/'
-CONTEXT_TEMPLATE = """
-django:
-    scret_key: '{{ ctx('django.secret_key ') }}'
-
-databases:
-    default:
-        user: ''
-        name: ''
-        password: ''
-        host: ''
-
-email:
-    host: ''
-    tls: true
-    port: 587
-    user: ''
-    pass: ''
-"""
 
 
 @task
@@ -106,6 +87,7 @@ def create_dirs():
     """
     Creates necessary directories and apply user/group permissions
     """
+    paths = []
     print(cyan('Creating directories on {}'.format(env.stage)))
     for k in env.context.keys():
         if type(env.context.get(k)) is dict:
@@ -113,10 +95,11 @@ def create_dirs():
             if dirs:
                 for name, path in dirs.items():
                     p = Template(path).render(**env.context)
-                    sudo('mkdir -p {}'.format(p))
-                    sudo('chown -R {user}:{group} {path}'.format(
-                         user=ctx('system.user'), group=ctx('system.group'),
-                         path=p))
+                    paths.append(p)
+    out = ' '.join(paths)
+    sudo('mkdir -p {paths}'.format(paths=out))
+    sudo('chown -R {user}:{group} {paths}'.format(
+            user=ctx('system.user'), group=ctx('system.group'), paths=out))
 
 
 @task
@@ -130,21 +113,31 @@ def checkout():
     git_path = os.path.join(git_root, git_dir)
     if not fabtools.deb.is_installed('git'):
         fabtools.deb.install('git')
-    if files.exists(os.path.join(git_path, '.git'), use_sudo=True):
-        print(cyan('Updating {} on {}'.format(branch, env.stage)))
-        with cd(git_path):
-            sudo('git reset --hard')
-            sudo('git pull')
-            sudo('git submodule update --init --recursive')
-            sudo('git checkout {}'.format(branch))
-            sudo("find . -iname '*.pyc' | xargs rm -f")
-    else:
-        print(cyan('Cloning {} on {}'.format(branch, env.stage)))
-        with cd(git_root):
-            sudo('git clone --recursive -b {} {} {}'.format(
-                ctx('git.branch'), ctx('git.repository'), git_dir))
 
+    # Experimental
+    require.git.working_copy(ctx('git.repository'),
+                             path=git_path, branch=branch, update=True,
+                             use_sudo=True)
+    with cd(git_path):
+        sudo('git submodule update --init --recursive')
+        sudo("find . -iname '*.pyc' | xargs rm -f")
+    # /Experimental
 
+   #if files.exists(os.path.join(git_path, '.git'), use_sudo=True):
+   #    print(cyan('Updating {} on {}'.format(branch, env.stage)))
+   #    with cd(git_path):
+   #        sudo('git reset --hard')
+   #        sudo('git pull')
+   #        sudo('git submodule update --init --recursive')
+   #        sudo('git checkout {}'.format(branch))
+   #        sudo("find . -iname '*.pyc' | xargs rm -f")
+   #else:
+   #    print(cyan('Cloning {} on {}'.format(branch, env.stage)))
+   #    with cd(git_root):
+   #        sudo('git clone --recursive -b {} {} {}'.format(
+   #            ctx('git.branch'), ctx('git.repository'), git_dir))
+
+from fabtools.python import virtualenv
 @task
 def setup_virtualenv():
     """
@@ -152,43 +145,58 @@ def setup_virtualenv():
     """
     venv_root = ctx('virtualenv.dirs.root')
     venv_name = ctx('virtualenv.name')
+    venv_path = os.path.join(venv_root, venv_name)
     lib_root = os.path.join(venv_root, venv_name, 'lib')
+    py = 'python{}'.format(ctx('python.version'))
+    env.venv_path = venv_path
+
     if not fabtools.deb.is_installed('python-virtualenv'):
         fabtools.deb.install('python-virtualenv')
-    if not files.exists(lib_root, use_sudo=True):
-        print(cyan("Setuping virtualenv on {}".format(env.stage)))
-        with cd(venv_root):
-            sudo('virtualenv --python=python{version} {name}'.format(
-                version=ctx('python.version'),
-                name=ctx('virtualenv.name')))
-    pip('install -U setuptools pip')  # Just avoiding some headaches..
+    # Experimental
+    require.python.virtualenv(venv_path, python_cmd=py, use_sudo=True)
+    with virtualenv(venv_path):
+        require.python.pip()
+        require.python.setuptools()
+    # /Experimental
+
+   #if not files.exists(lib_root, use_sudo=True):
+   #    print(cyan("Setuping virtualenv on {}".format(env.stage)))
+   #    with cd(venv_root):
+   #        sudo('virtualenv --python=python{version} {name}'.format(
+   #            version=ctx('python.version'),
+   #            name=ctx('virtualenv.name')))
+   #pip('install -U setuptools pip')  # Just avoiding some headaches..
 
 
 @task
-def install_requirements():
+def install_requirements(upgrade=False):
     project_dir = get_project_dir()
     requirements_pip = os.path.join(project_dir, 'requirements.pip')
-    if files.exists(requirements_pip, use_sudo=True):
-        print(cyan("Installing requirements.pip on {}".format(env.stage)))
-        pip('install -qr {}'.format(requirements_pip))
+    # it is necessary to cd into project dir to support relative
+    # paths inside requirements correctly
+    with cd(project_dir):
+        if files.exists(requirements_pip, use_sudo=True):
+            print(cyan("Installing requirements.pip on {}".format(env.stage)))
+            with virtualenv(env.venv_path):
+                fabtools.python.install_requirements(
+                    requirements_pip, upgrade=upgrade, use_sudo=True)
 
-    requirements_txt = os.path.join(project_dir, 'requirements.txt')
-    if files.exists(requirements_txt, use_sudo=True):
-        print(cyan("Installing requirements.txt on {}".format(env.stage)))
-        pip('install -qr {}'.format(requirements_txt))
+        requirements_txt = os.path.join(project_dir, 'requirements.txt')
+        if files.exists(requirements_txt, use_sudo=True):
+            print(cyan("Installing requirements.txt on {}".format(env.stage)))
+            with virtualenv(env.venv_path):
+                fabtools.python.install_requirements(
+                    requirements_txt, upgrade=upgrade, use_sudo=True)
 
-    extra_requirements = ctx('virtualenv.extra_requirements', default=False)
-    if extra_requirements and isinstance(extra_requirements, list):
-        for req in extra_requirements:
-            if files.exists(requirements_txt, use_sudo=True):
+        extra_requirements = ctx('virtualenv.extra_requirements',
+                                 default=False)
+        if extra_requirements and isinstance(extra_requirements, list):
+            for req in extra_requirements:
                 print(cyan("Installing {} on {}".format(req, env.stage)))
-                pip('install -qr {}'.format(req))
-
-
-@task
-def update_requirements():
-    print(cyan("Updating requirements on {}".format(env.stage)))
-    pip('install -qUr requirements.pip')
+                with virtualenv(env.venv_path):
+                    if req.startswith('./'):
+                        req = os.path.join(project_dir, req[:2])
+                    fabtools.python.install(req, use_sudo=True)
 
 
 @task
@@ -202,7 +210,7 @@ def setup_django_settings():
     project_name = ctx('django.project_name')
     stage_settings = '{stage}_settings.py'.format(stage=env.stage)
     templates = [
-        os.path.join(TEMPLATES_DIR, stage_settings),
+        os.path.join('./dploy/', stage_settings),
         os.path.join('./', project_name, 'local_settings.py-dist'),
         os.path.join('./', project_name, 'local_settings.py-default'),
         os.path.join('./', project_name, 'local_settings.py-example'),

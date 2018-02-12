@@ -4,29 +4,46 @@ $ fab on:prod deploy
 
 import os
 
+from fabric.colors import cyan
+
+from dploy.commands import manage
 from dploy.tasks import (  # noqa
     env, task, execute, on, print_context, create_dirs, checkout,
-    setup_virtualenv, update_requirements, install_requirements,
-    setup_django_settings, django_migrate, django_collectstatic,
-    setup_cron, setup_cron, setup_uwsgi, setup_supervisor,
-    setup_nginx, install_system_dependencies
+    setup_virtualenv, install_requirements, setup_django_settings,
+    django_migrate, django_collectstatic, setup_cron, setup_cron, setup_django,
+    setup_uwsgi, setup_supervisor, setup_nginx, install_system_dependencies
 )
 
 env.base_path = os.path.dirname(__file__)
 
+"""
+@task
+def rollback_list():
+    manage('rollback --list')
+
 
 @task
-def deploy(update=False):
+def rollback_create():
+    print(cyan('Creating rollback on %s' % env.stage))
+    manage('rollback --create --no-media')
+
+
+@task
+def rollback_restore(uid=None):
+    print(cyan('Restoring rollback on %s' % env.stage))
+    manage('rollback --restore {}'.format(uid))
+"""
+
+@task
+def deploy(upgrade=False):
+    print(cyan("Deploying project on {} !".format(env.stage)))
+    # if env.stage == 'prod':
+    #    execute(rollback_create)
     execute(create_dirs)
     execute(checkout)
     execute(setup_virtualenv)
-    if update:
-        execute(update_requirements)
-    else:
-        execute(install_requirements)
-    execute(setup_django_settings)
-    execute(django_migrate)
-    execute(django_collectstatic)
+    execute(install_requirements, upgrade=upgrade)
+    execute(setup_django)
     execute(setup_cron)
     execute(setup_uwsgi)
     execute(setup_supervisor)
