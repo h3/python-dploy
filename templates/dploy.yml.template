@@ -13,8 +13,8 @@ global:
         letsencrypt: true
     system:
         packages: |-
-            python python-dev python-pip python-virtualenv supervisor\
-            libjpeg-dev git bc zlib1g-dev libffi-dev libyaml-dev
+            python python-dev python-pip python-virtualenv supervisor \
+            libjpeg-dev git bc zlib1g-dev libffi-dev libyaml-dev bc gcc
 
 stages:
 
