@@ -15,15 +15,54 @@ Options:
 
 """
 from docopt import docopt
+from fabric.colors import red, green
+from fabric.operations import prompt
+from jinja2 import Template
+
+import os
+
+PROJECT_DIR = os.getcwd()
+DPLOY_FILE = os.path.join(PROJECT_DIR, 'dploy.yml')
+FAB_FILE = os.path.join(PROJECT_DIR, 'fabfile.py')
+DPLOY_DIR = os.path.join(PROJECT_DIR, 'dploy')
+
+TEMPLATES_DIR = os.path.realpath(os.path.join(__file__, '../../../templates'))
+DPLOY_TEMPLATE = os.path.join(TEMPLATES_DIR, 'dploy.yml.template')
+FABFILE_TEMPLATE = os.path.join(TEMPLATES_DIR, 'fabfile.py.template')
 
 
 def init(args):
     """Initialize dploy configurations for a given project"""
-    name = args.get('<name>').pop()
-    print("CREATING PROJECT CONF")
-    print(__file__)
-    print(name)
-    print(args)
+    context = {
+        'project_name': args.get('<name>').pop(),
+        'git_repository': prompt('Git repository: '),
+    }
+    context['git_dir'] = prompt(
+        'Git directory: ',
+        default=context['git_repository'].split('/')[-1].replace('.git', ''))
+
+    # Create dploy.yml
+    if os.path.exists(DPLOY_FILE):
+        print(red(
+            'File {} already exists, skipping.'.format(DPLOY_FILE), bold=True))
+    else:
+        with open(DPLOY_TEMPLATE, 'r') as fd:
+            rs = Template(fd.read()).render(**context)
+        with open(DPLOY_FILE, 'w+') as fd:
+            fd.write(rs)
+        print(green('Created {}'.format(DPLOY_FILE)))
+
+    # Create fabfile.py
+    if os.path.exists(FAB_FILE):
+        print(red(
+            'File {} already exists, skipping.'.format(FAB_FILE), bold=True))
+    else:
+        context = {}
+        with open(FABFILE_TEMPLATE, 'r') as fd:
+            rs = Template(fd.read()).render(**context)
+        with open(FAB_FILE, 'w+') as fd:
+            fd.write(rs)
+        print(green('Created {}'.format(FAB_FILE)))
 
 
 if __name__ == '__main__':
