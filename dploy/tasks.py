@@ -388,7 +388,7 @@ def setup_supervisor():
         fabtools.deb.install('supervisor')
     project_dir = get_project_dir()
     uwsgi_ini = os.path.join(project_dir, 'uwsgi.ini')
-    process_name = '{}-{}'.format(env.stage, ctx('django.process_name'))
+    process_name = '{}-{}'.format(env.stage, ctx('django.project_name'))
     context = {'uwsgi_ini': uwsgi_ini}
     dest = os.path.join(
         ctx('supervisor.dirs.root'),
