@@ -33,7 +33,7 @@ $ fab on:prod deploy
 
 Tasks can be chained:
 
-$ fab on:prod virtualenv_setup install_requirements
+$ fab on:prod virtualenv.setup nginx.setup
 
 Multi stage deployment can also be chained:
 
@@ -120,15 +120,14 @@ def deploy(upgrade=False):
     print(cyan("Deploying project on {} !".format(env.stage)))
     if env.stage == 'prod':
         execute(rollback_create)
-    execute(create_dirs)
-    execute(checkout)
-    execute(virtualenv_setup)
-    execute(install_requirements, upgrade=upgrade)
-    execute(django_setup)
-    execute(cron_setup)
-    execute(uwsgi_setup)
-    execute(supervisor_setup)
-    execute(nginx_setup)
+    execute('system.create_dirs')
+    execute('git.checkout')
+    execute('virtualenv.setup', upgrade=upgrade)
+    execute('django.setup')
+    execute('cron.setup')
+    execute('uwsgi.setup')
+    execute('supervisor.setup')
+    execute('nginx.setup')
 ```
 
 **Note**: This is an example that assumes that there is a `rollback` management command present in the django project.
