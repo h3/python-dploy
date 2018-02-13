@@ -36,7 +36,7 @@ def deploy(upgrade=False):
     Perform all deployment tasks sequentially
     """
     print("Deploying project on {} !".format(env.stage))
-    execute('system.create_dirs')
+    execute('system.setup')
     execute('git.checkout')
     execute('virtualenv.setup')
     execute('django.setup')
@@ -44,3 +44,17 @@ def deploy(upgrade=False):
     execute('uwsgi.setup')
     execute('supervisor.setup')
     execute('nginx.setup')
+
+
+""" TODO
+@task
+def teardown(upgrade=False):
+    print("Tearing down project on {} !".format(env.stage))
+    execute('nginx.teardown')
+    execute('supervisor.teardown')
+    execute('django.teardown')
+    execute('uwsgi.teardown')
+    execute('virtualenv.teardown')
+    execute('cron.teardown')
+    execute('system.remove_dirs')
+"""

@@ -2,7 +2,7 @@ import os
 import sys
 
 from fabric.colors import cyan, red, yellow
-from fabric.api import task, env, cd, sudo, local, get, hide, run, execute  # noqa
+from fabric.api import task, env, sudo, get, hide, execute
 
 from dploy.context import ctx, get_project_dir
 from dploy.commands import manage as django_manage

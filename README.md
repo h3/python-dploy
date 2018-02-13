@@ -120,7 +120,7 @@ def deploy(upgrade=False):
     print(cyan("Deploying project on {} !".format(env.stage)))
     if env.stage == 'prod':
         execute(rollback_create)
-    execute('system.create_dirs')
+    execute('system.setup')
     execute('git.checkout')
     execute('virtualenv.setup', upgrade=upgrade)
     execute('django.setup')

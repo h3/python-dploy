@@ -1,8 +1,9 @@
 from jinja2 import Template
 
-from fabric.api import task, env, local, sudo
+from fabric.api import task, env, local, sudo, execute
+from fabric.contrib import files
 from fabric.colors import cyan
-from dploy.context import ctx
+from dploy.context import ctx, get_project_dir
 
 
 @task
@@ -38,3 +39,16 @@ def create_dirs():
     sudo('mkdir -p {paths}'.format(paths=out))
     sudo('chown -R {user}:{group} {paths}'.format(
             user=ctx('system.user'), group=ctx('system.group'), paths=out))
+
+
+@task
+def setup():
+    """
+    System setup
+    """
+    project_dir = get_project_dir()
+    # we install system dependencies only when we are sure the project hasn't
+    # been deployed yet
+    if not files.exists(project_dir, use_sudo=True):
+        execute(install_dependencies)
+    execute(create_dirs)
