@@ -15,7 +15,7 @@ install_requires = [
     'docopt>=0.6.2',
 ]
 
-if sys.version_info[0] < 3:
+if sys.version_info.major < 3:
     # py2
     install_requires.append('Fabric>=1.14.0')
     install_requires.append('fabtools>=0.20.0')
@@ -24,7 +24,7 @@ else:
     install_requires.append('Fabric3==1.13.1.post1')
     install_requires.append('fabtools==0.20.0')
     dependency_links = [
-        "git+ssh://git@github.com/h3/fabtools.git@python3#egg=fabtools-0.21.0",
+        "git+ssh://git@github.com/h3/fabtools.git@python3#egg=fabtools-0.20.0",
     ]
 
 
