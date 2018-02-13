@@ -98,6 +98,7 @@ def ctx(path, default=None, context=None):
     if isinstance(val, str):
         if context is None:
             context = env.context
+        context['stage'] = env.stage
         return Template(val).render(**context)
     else:
         return val
