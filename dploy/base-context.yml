@@ -58,6 +58,7 @@ email:
   pass: ''
 
 ssl:
+    letsencrypt: false
     cert: false
     key: false
     ciphers: |-
