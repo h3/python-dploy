@@ -11,6 +11,9 @@ from dploy.context import ctx
 
 @task
 def setup():
+    """
+    Create context on remote stage (not functional yet)
+    """
     print(cyan('Configuring context on {}'.format(env.stage)))
     if env.stage == 'dev':
         abort(red('This task is only for remote stages.'))
@@ -23,10 +26,9 @@ def setup():
         # http://klenwell.com/is/FabricEditRemoteFile
         print('Context already exists')
     else:
+        # TODO: use prompt to fill in context interactively
         with tempfile.TemporaryFile() as tmp:
             tmp.write('CONTEXT_TEMPLATE')
-            import IPython
-            IPython.embed()
 
 
 @task

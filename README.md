@@ -45,25 +45,27 @@ Documentation: https://github.com/h3/python-dploy
 
 Available commands:
 
-    checkout                     Checkouts the code on the remote location using git
-    create_dirs                  Creates necessary directories and apply user/group permissions
-    cron_setup                   Configure Cron if a dploy/cron.template exists
-    deploy                       Perform all deployment tasks sequentially
-    django                       Runs django manage.py with a given command
-    django_collectstatic         Collect static medias
-    django_migrate               Perform django migration (only if the django version is >= 1.7)
-    django_setup                 Performs django_setup_settings, django_migrate and django_collects...
-    django_setup_settings        Takes the dploy/<STAGE>_settings.py template and upload it to remo...
-    install_requirements         Installs pip requirements
-    install_system_dependencies  Install system dependencies (dploy.yml:system.packages)
-    letsencrypt_install          Install letsencrypt's certbot
-    letsencrypt_setup            Configure SSL with letsencrypt's certbot for the domain
-    nginx_setup                  Configure nginx, will trigger letsencrypt setup if required
-    on                           Sets the stage to perform action on
-    print_context                Prints deployment context
-    supervisor_setup             Configure supervisor to monitor the uwsgi process
-    uwsgi_setup                  Configure uWSGI
-    virtualenv_setup             Setup virtualenv on the remote location
+    deploy                           Perform all deployment tasks sequentially
+    on                               Sets the stage to perform action on
+    context.pprint                   Prints deployment context
+    context.setup                    Create context on remote stage (not functional yet)
+    cron.setup                       Configure Cron if a dploy/cron.template exists
+    django.collectstatic             Collect static medias
+    django.dumpdata                  Runs dumpdata on a given app and fetch the file locally
+    django.manage                    Runs django manage.py with a given command
+    django.migrate                   Perform django migration (only if the django version is >= 1.7)
+    django.setup                     Performs django_setup_settings, django_migrate and django_collectstatic
+    django.setup_settings            Takes the dploy/<STAGE>_settings.py template and upload it to remote
+    git.checkout                     Checkouts the code on the remote location using git
+    letsencrypt.install              Install letsencrypt's certbot
+    letsencrypt.setup                Configure SSL with letsencrypt's certbot for the domain
+    nginx.setup                      Configure nginx, will trigger letsencrypt setup if required
+    supervisor.setup                 Configure supervisor to monitor the uwsgi process
+    system.create_dirs               Creates necessary directories and apply user/group permissions
+    system.install_dependencies      Install system dependencies (dploy.yml:system.packages)
+    uwsgi.setup                      Configure uWSGI
+    virtualenv.install_requirements  Installs pip requirements
+    virtualenv.setup                 Setup virtualenv on the remote location
 ```
 
 
