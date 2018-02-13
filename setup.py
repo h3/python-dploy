@@ -13,7 +13,7 @@ install_requires = [
     'PyYAML>=3.12',
     'Jinja2>=2.9.5',
     'docopt>=0.6.2',
-],
+]
 
 if sys.version_info[0] < 3:
     # py2
