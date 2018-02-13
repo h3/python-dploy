@@ -22,9 +22,9 @@ if sys.version_info[0] < 3:
 else:
     # py3
     install_requires.append('Fabric3==1.13.1.post1')
-    install_requires.append('fabtools==0.21.0.dev0')
+    install_requires.append('fabtools==0.21.0')
     dependency_links = [
-        "git+ssh://git@github.com/h3/fabtools.git@python3#egg=fabtools-0.21.0.dev0",  # noqa
+        "git+ssh://git@github.com/h3/fabtools.git@python3#egg=fabtools-0.21.0",
     ]
 
 
