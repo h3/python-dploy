@@ -38,6 +38,11 @@ cron:
     config_path: '/etc/cron.d/' # CRON_PATH
 
 supervisor:
+    program_name: '{{ stage }}-{{ django["project_name"] }}'
+    autostart: 'true'
+    autorestart: 'true'
+    redirect_stderr: 'true'
+    stdout_logfile: '/var/log/{{ nginx["server_name"] }}/supervisord.log'
     dirs:
         root: '/etc/supervisor/conf.d'
 

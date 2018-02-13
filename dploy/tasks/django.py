@@ -5,7 +5,7 @@ from fabric.colors import cyan, red, yellow
 from fabric.api import task, env, cd, sudo, local, get, hide, run, execute  # noqa
 
 from dploy.context import ctx, get_project_dir
-from dploy.commands import manage
+from dploy.commands import manage as django_manage
 from dploy.utils import (
     FabricException, version_supports_migrations, select_template,
     upload_template,
@@ -13,16 +13,16 @@ from dploy.utils import (
 
 
 @task
-def django(cmd):
+def manage(cmd):
     """
     Runs django manage.py with a given command
     """
     print(cyan("Django manage {} on {}".format(cmd, env.stage)))
-    manage(cmd)
+    django_manage(cmd)
 
 
 @task
-def django_setup_settings():
+def setup_settings():
     """
     Takes the dploy/<STAGE>_settings.py template and upload it to remote
     django project location (as local_settings.py)
@@ -56,54 +56,54 @@ def django_setup_settings():
 
 
 @task
-def django_migrate():
+def migrate():
     """
     Perform django migration (only if the django version is >= 1.7)
     """
     with hide('running', 'stdout'):
-        version = manage('--version')
+        version = django_manage('--version')
     if version_supports_migrations(version):
         print(cyan("Django migrate on {}".format(env.stage)))
         try:
-            manage('migrate --noinput')
+            django_manage('migrate --noinput')
         except FabricException as e:
             print(yellow(
                 'WARNING: faked migrations because of exception {}'.format(e)))
-            manage('migrate --noinput --fake')
+            django_manage('migrate --noinput --fake')
     else:
         print(yellow(
             "Django {} does not support migration, skipping.".format(version)))
 
 
 @task
-def django_collectstatic():
+def collectstatic():
     """
     Collect static medias
     """
     print(cyan("Django collectstatic on {}".format(env.stage)))
-    manage(ctx('django.commands.collectstatic'))
+    django_manage(ctx('django.commands.collectstatic'))
 
 
 @task
-def django_dumpdata(app, dest=None):
+def dumpdata(app, dest=None):
     """
     Runs dumpdata on a given app and fetch the file locally
     """
     if dest is None:
-        manage('dumpdata --indent=2 {}'.format(app))
+        django_manage('dumpdata --indent=2 {}'.format(app))
     else:
         tmp_file = '/tmp/{}.tmp'.format(app)
-        manage('dumpdata --indent=2 {} > {}'.format(app, tmp_file))
+        django_manage('dumpdata --indent=2 {} > {}'.format(app, tmp_file))
         with open(dest, 'w+') as fd:
             get(tmp_file, fd, use_sudo=True)
         sudo('rm -f {}'.format(tmp_file))
 
 
 @task
-def django_setup():
+def setup():
     """
     Performs django_setup_settings, django_migrate and django_collectstatic
     """
-    execute(django_setup_settings)
-    execute(django_migrate)
-    execute(django_collectstatic)
+    execute(setup_settings)
+    execute(migrate)
+    execute(collectstatic)

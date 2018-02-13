@@ -1,10 +1,10 @@
-[program:{{ ctx('stage') }}-{{ ctx('django.project_name') }}]
+[program:{{ ctx('supervisor.program_name') }}]
 command={{ ctx('virtualenv.dirs.root') }}/{{ ctx('virtualenv.name') }}/bin/uwsgi --ini {{ uwsgi_ini }}
 directory={{ project_dir }}
 environment=DJANGO_SETTINGS_MODULE='{{ ctx('django.project_name') }}.settings'
-user={{ ctx('system.user') }}
+user={{ ctx('system.user', default="www-data") }}
 autostart={{ ctx('supervisor.autostart', default="true") }}
 autorestart={{ ctx('supervisor.autorestart', default="true") }}
-stdout_logfile={{ ctx('logs.dirs.root') }}/supervisord.log
+stdout_logfile={{ ctx('supervisor.stdout_logfile', default="/var/log/supervisord.log") }}
 redirect_stderr={{ ctx('supervisor.redirect_stderr', default="true") }}
 stopsignal=QUIT
