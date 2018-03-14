@@ -22,6 +22,18 @@ def manage(cmd):
 
 
 @task
+def setup_logging():
+    """
+    Runs django manage.py check command and sets logs folder owner after
+    """
+    django_manage('check')
+    sudo('chown -R {user}:{group} {logpath}'.format(
+        user=ctx('system.user'),
+        group=ctx('system.group'),
+        logpath=ctx('logs.dirs.root')))
+
+
+@task
 def setup_settings():
     """
     Takes the dploy/<STAGE>_settings.py template and upload it to remote
@@ -102,8 +114,10 @@ def dumpdata(app, dest=None):
 @task
 def setup():
     """
-    Performs django_setup_settings, django_migrate and django_collectstatic
+    Performs django_setup_settings, django_migrate, django_collectstatic
+    and django_check
     """
     execute(setup_settings)
     execute(migrate)
     execute(collectstatic)
+    execute(setup_logging)
