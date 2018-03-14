@@ -37,6 +37,13 @@ def setup():
 
     if not fabtools.deb.is_installed('certbot'):
         execute(install)
+        
+    if not files.exists('/etc/letsencrypt/ssl-dhparams.pem', use_sudo=True):
+        sudo('openssl dhparam -out /etc/letsencrypt/ssl-dhparams.pem 2048')
+        
+    if not files.exists('/etc/letsencrypt/options-ssl-nginx.conf', use_sudo=True):
+        upload_template('options-ssl-nginx.conf.template',
+                        '/etc/letsencrypt/options-ssl-nginx.conf')
 
     if not files.exists(path_cert, use_sudo=True):
         upload_template('nginx_letsencrypt_init.template',

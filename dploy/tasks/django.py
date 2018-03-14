@@ -22,7 +22,7 @@ def manage(cmd):
 
 
 @task
-def setup_logging():
+def setup_log_files_owner():
     """
     Runs django manage.py check command and sets logs folder owner after
     """
@@ -120,4 +120,4 @@ def setup():
     execute(setup_settings)
     execute(migrate)
     execute(collectstatic)
-    execute(setup_logging)
+    execute(setup_log_files_owner)
