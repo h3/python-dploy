@@ -1,5 +1,26 @@
 # python-dploy
 
+## Installation
+
+There are no official release yet, so to install it you must add these to your requirements file.
+
+### Python2
+
+```
+git+https://github.com/h3/python-dploy.git#egg=python-dploy
+```
+
+### Python3
+
+If you need Python3 support, you will also need this temporary fork of fabtools:
+
+```
+git+https://github.com/h3/fabtools.git@python3#egg=fabtools-0.20.0
+git+https://github.com/h3/python-dploy.git#egg=python-dploy
+```
+This is needed until official Python3 support is added to fabtools ([seems to be planned for 0.21.0](https://github.com/fabtools/fabtools/commit/f1960b0323323c825d72180ce8d7b3a17dda59ea#diff-354f30a63fb0907d4ad57269548329e3R5))
+
+
 ## Global commands
 
 ### init
