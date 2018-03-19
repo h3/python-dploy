@@ -29,10 +29,7 @@ setup(
         'Jinja2>=2.9.5',
         'docopt>=0.6.2',
         'Fabric3==1.14.post1',
-        'fabtools==0.20.0',
-    ],
-    dependency_links=[
-        "git+ssh://git@github.com/h3/fabtools.git@python3#egg=fabtools-0.20.0",
+        'fabtools>=0.20.0',
     ],
     classifiers=[
         'Environment :: Console',
