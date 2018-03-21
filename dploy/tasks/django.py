@@ -114,9 +114,10 @@ def dumpdata(app, dest=None):
 @task
 def setup():
     """
-    Performs django_setup_settings, django_migrate and django_collectstatic
+    Performs django_setup_settings, django_migrate, django_collectstatic
+    and django_check
     """
-    execute(setup_log_files_owner)
     execute(setup_settings)
     execute(migrate)
     execute(collectstatic)
+    execute(setup_log_files_owner)
