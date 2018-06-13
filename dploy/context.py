@@ -90,9 +90,9 @@ def ctx(path, default=None, context=None):
             val = None
             break
 
-    if not val and default is not None:
+    if val is None and default is not None:
         val = default
-    elif not val:
+    elif val is None:
         abort(red('Configuration error: {}'.format(path)))
 
     if isinstance(val, str):

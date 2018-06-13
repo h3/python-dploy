@@ -35,9 +35,9 @@ def setup():
         if ssl:
             upload_template(
                 'nginx_ssl.template', ctx('nginx.config_path'), context=context)
-        else:
-            upload_template(
-                'nginx.template', ctx('nginx.config_path'), context=context)
+    else:
+        upload_template(
+            'nginx.template', ctx('nginx.config_path'), context=context)
 
     if files.exists(ctx('nginx.document_root'), use_sudo=True):
         sudo('chown -R {user}:{group} {path}'.format(
