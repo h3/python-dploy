@@ -1,6 +1,6 @@
 {% if ctx("ssl.letsencrypt", default=False) %}
 map $uri $redirect_https {
-    /.well-known/acme-challenge 0;
+    ~*^/.well-known/acme-challenge 0;
     default 1;
 }
 {% endif %}
@@ -9,7 +9,7 @@ server {
     listen {{ ctx("nginx.server_ip") }}:80;
     server_name {{ ctx("nginx.server_name") }};
     {% if ctx("ssl.letsencrypt", default=False) %}
-    location /.well-known/acme-challenge {
+    location ^~ /.well-known {
       root /var/www/html;
     }
     {% endif %}
